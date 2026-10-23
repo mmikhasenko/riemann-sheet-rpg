@@ -1,5 +1,10 @@
 # Release notes
 
+## v0.1.1 — 2026-10-23
+
+- Fixed Easy mode in Player view: distant key and chest markers remain visible in the illuminated area, but are hidden in darkness.
+- Updated the guided tour and Easy mode help to explain this behavior.
+
 ## v0.1.0 — 2026-10-23
 
 First public release of Riemann Sheet RPG.
