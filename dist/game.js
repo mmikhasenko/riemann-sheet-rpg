@@ -1,5 +1,5 @@
 import {levels, transport, move} from './math.js';
-import {TOTAL_SHEETS, AWARDS, readProgress, saveProgress, visitSheet} from './progress.js';
+import {exploredInLevel, TOTAL_SHEETS, AWARDS, readProgress, saveProgress, visitSheet} from './progress.js';
 const $=id=>document.getElementById(id), canvas=$('terrain'), overlay=$('overlay'), ctx=overlay.getContext('2d');
 let state, mode='top', scalar=0, heading=Math.PI/2, target=null, last=0, noticeUntil=8, elapsed=0, width=0,height=0,scale=1;
 const keys=new Set();
@@ -15,7 +15,10 @@ function awardsMarkup(){return AWARDS.map(a=>{
   return `<div class="award-row ${earned?'earned':''}"><span class="award-icon">${a.icon}</span><div><b>${a.name}</b><small>${a.description}</small></div><span class="award-status">${earned?'✓':`${progress.visited.size}/${a.count}`}</span></div>`;
 }).join('');}
 function refreshProgress(){
-  $('visited-count').textContent=`${progress.visited.size} / ${TOTAL_SHEETS}`;
+  $('visited-count').textContent=`${exploredInLevel(progress,activeLevel)} / ${activeLevel.labels.length}`;
+  $('level-discovery-label').textContent=`sheets entered · Level ${activeLevel.number} (saved)`;
+  $('total-discovery-count').textContent=`Across all ${levels.length} levels: ${progress.visited.size} / ${TOTAL_SHEETS} sheets entered`;
+  $('movement-count').textContent=`This run: ${state.crossings} player sheet transition${state.crossings===1?'':'s'}`;
   $('award-shelf').innerHTML=AWARDS.map(a=>`<span class="award-mini ${progress.visited.size>=a.count?'earned':''}" title="${a.name}: ${a.description}" aria-label="${a.name}: ${progress.visited.size>=a.count?'earned':`${a.count} sheets needed`}">${a.icon} ${a.count}</span>`).join('');
   $('menu-awards').innerHTML=awardsMarkup();
 }
@@ -24,7 +27,7 @@ function discover(){
   const earned=visitSheet(progress,activeLevel.id,state.label);
   persist();refreshProgress();
   if(earned.length){
-    clearTimeout(awardTimeout);$('award-toast').textContent=`${earned[0].icon} Award unlocked: ${earned[0].name} · ${progress.visited.size} unique sheets`;
+    clearTimeout(awardTimeout);$('award-toast').textContent=`${earned[0].icon} Award unlocked: ${earned[0].name} · ${progress.visited.size} sheets entered across levels`;
     $('award-toast').hidden=false;
     awardTimeout=setTimeout(()=>$('award-toast').hidden=true,6000);
   }
@@ -61,8 +64,8 @@ function showMenu(kind='levels'){
   $('menu-eyebrow').textContent=complete?'EXPEDITION COMPLETE':dead?'EXPEDITION ENDED':'EXPEDITION ATLAS';
   $('menu-emblem').textContent=complete?'✦':dead?'↻':'❖';
   $('menu-title').textContent=complete?'A world beyond the cut.':dead?'Lost to infinity.':'Choose your next world.';
-  $('menu-description').textContent=complete?`You opened the chest on Sheet ${activeLevel.labelName(chest.label)}. Your discoveries are recorded. Where to next?`:dead?'Your discoveries are safe. Start a fresh expedition or choose another level.':'Explore the available surfaces and collect awards for discovering distinct sheets.';
-  $('run-stats').innerHTML=`<span><b>${state.visited.size}</b>sheets this run</span><span><b>${state.crossings}</b>cut crossings</span><span><b>${progress.visited.size}</b>unique sheets total</span>`;
+  $('menu-description').textContent=complete?`You opened the chest on Sheet ${activeLevel.labelName(chest.label)}. Your discoveries are recorded. Where to next?`:dead?'Your discoveries are safe. Start a fresh expedition or choose another level.':'Awards count sheets your character enters, including the starting sheet. Viewing rays do not count.';
+  $('run-stats').innerHTML=`<span><b>${state.visited.size} / ${activeLevel.labels.length}</b>sheets entered this run<br>Level ${activeLevel.number}</span><span><b>${state.crossings}</b>player sheet transitions<br>this run</span><span><b>${progress.visited.size} / ${TOTAL_SHEETS}</b>sheets entered<br>across ${levels.length} levels</span>`;
   $('next-level').hidden=!complete||levelIndex>=levels.length-1;
   $('next-level').textContent=levelIndex<levels.length-1?`Next: ${levels[levelIndex+1].formula} →`:'Next level';
   $('explore').hidden=dead;$('explore').textContent=state.won?'Keep exploring':'Resume expedition';
@@ -88,10 +91,11 @@ if(gl){
  precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs;uniform float signSheet,heading;uniform int mode,scalar,functionKind;
  vec2 principalRoot(vec2 z){float r=length(z);return vec2(sqrt(max(0.,(r+z.x)*.5)),(z.y<0.?-1.:1.)*sqrt(max(0.,(r-z.x)*.5)));}
  void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;
- if(mode==2 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else label=-label;}}
+ if(mode==2 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==3){if(x>=cutBounds.x && x<branchXs.y)label=float(int(label) ^ (x<branchXs.x?3:2));}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else label=-label;}}
  float r=length(s);vec2 root=vec2(sqrt(max(0.,(r+s.x)*.5)),(s.y<0.?-1.:1.)*sqrt(max(0.,(r-s.x)*.5)))*label;
  if(functionKind==1){float angle=(atan(s.y,s.x)+6.28318530718*label)/3.;root=pow(r,1./3.)*vec2(cos(angle),sin(angle));}
  if(functionKind==2){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));root=label*vec2(u.x*w.x-u.y*w.y,u.x*w.y+u.y*w.x);}
+ if(functionKind==3){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));int bits=int(label);root=((bits&1)==0?1.:-1.)*u+2.*((bits&2)==0?1.:-1.)*w;}
  float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(.5+v/6.,0.,1.);
  vec3 low=vec3(.055,.17,.24),mid=vec3(.19,.39,.39),high=vec3(.69,.72,.44);vec3 c=t<.5?mix(low,mid,t*2.):mix(mid,high,(t-.5)*2.);
  float contour=abs(fract(v*5.+.5)-.5);float line=1.-smoothstep(.015,.015+fwidth(v)*7.,contour);c*=1.-.22*line;
@@ -115,7 +119,7 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
    const start=screen(cut.a),end=screen(cut.b);
    ctx.beginPath();ctx.moveTo(Math.max(0,start.x),start.y);ctx.lineTo(Math.min(width,end.x),end.y);ctx.stroke();
    ctx.font='9px monospace';ctx.fillStyle='#e1bc7b';
-   ctx.fillText(activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+end.x)/2-24),start.y-12);
+   ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+end.x)/2-24),start.y-12);
  }
  ctx.setLineDash([]);ctx.strokeStyle='#bc83824a';ctx.beginPath();ctx.arc(origin.x,origin.y,5.5*scale,0,Math.PI*2);ctx.stroke();
  for(const branch of activeLevel.branchPoints)if(visible(branch)){
@@ -130,10 +134,34 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
  $('sheet').textContent=`SHEET ${activeLevel.labelName(state.label)}`;$('sheet-type').textContent=state.label===activeLevel.initialLabel?'Principal branch':'Continued branch';$('sheet-dot').style.background=state.label===activeLevel.initialLabel?'#aee4c5':'#e7bd77';const f=activeLevel.evaluate(state,state.label),fmt=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(3);$('coordinates').textContent=`s = ${state.x.toFixed(2)} ${fmt(state.y)}i`;$('value').textContent=`f(s) = ${f.x.toFixed(3)} ${fmt(f.y)}i`;$('hp').style.width=state.hp+'%';$('hp-label').textContent=Math.ceil(state.hp)+'%';$('toast').style.opacity=elapsed<noticeUntil?1:0;
  for(const [id,done] of [['key-objective',state.key],['chest-objective',state.won]]){$(id).classList.toggle('done',done);$(id).querySelector('.check').textContent=done?'✓':'○';}
 }
-function update(dt){if(state.dead||menu.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);if(len){dx/=len;dy/=len;heading=Math.atan2(dy,dx);}const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const old=state.label;if(!move(state,next,activeLevel)&&len)notice('The branch point is a puncture. Walk around it.',1);if(old!==state.label){state.crossings++;notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);discover();}
+function update(dt){if(state.dead||menu.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const old=state.label;if(!move(state,next,activeLevel)&&len)notice('The branch point is a puncture. Walk around it.',1);if(old!==state.label){state.crossings++;notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);discover();}
  if(r>5.5)state.hp=Math.max(0,state.hp-dt*(8+pull*8));if(state.hp<=0){state.dead=true;showMenu('dead');return;}if(!state.key&&state.label===key.label&&Math.hypot(state.x-key.x,state.y-key.y)<.4){state.key=true;notice(`Key found. Find the chest on Sheet ${activeLevel.labelName(chest.label)}.`,6);}if(!state.won&&state.label===chest.label&&Math.hypot(state.x-chest.x,state.y-chest.y)<.45){if(state.key){state.won=true;progress.completed.add(activeLevel.id);persist();notice('Chest opened! Your discoveries are recorded.',6);showMenu('complete');}else notice('The chest is locked. Find the key on Sheet I.',2);}}
 function frame(t){const dt=Math.min((t-last)/1000||0,.035);last=t;elapsed+=dt;update(dt);render();requestAnimationFrame(frame);}
-window.addEventListener('keydown',e=>{if(menu.open||['INPUT','SELECT','BUTTON'].includes(document.activeElement.tagName))return;const k=e.key.length===1?e.key.toLowerCase():e.key;if(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',()=>{keys.clear();target=null;});
+function turn(angle){heading=Math.atan2(Math.sin(heading+angle),Math.cos(heading+angle));}
+function setTerrain(value){
+ scalar=value;$('scalar').value=String(scalar);$('scalar-name').textContent=['Re f','Im f','|f|'][scalar];
+ if(scalar===2)notice(activeLevel.id==='root-sum'?'Magnitude distinguishes relative signs, but simultaneous sign reversal leaves it unchanged.':`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`,5);
+}
+function cycleTerrain(){setTerrain((scalar+1)%3);}
+window.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
+ const focus=document.activeElement;
+ if(focus.isContentEditable||['INPUT','SELECT','TEXTAREA'].includes(focus.tagName))return;
+ const k=e.key.length===1?e.key.toLowerCase():e.key;
+ if(k==='r'){e.preventDefault();if(!e.repeat)reset();return;}
+ if(menu.open)return;
+ if(k==='t'){e.preventDefault();if(!e.repeat)cycleTerrain();return;}
+ if(['w','a','s','d','q','e','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)){
+  e.preventDefault();keys.add(k);target=null;
+ }
+});
+window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));
+window.addEventListener('blur',()=>{keys.clear();target=null;});
+
 function point(e){const r=overlay.getBoundingClientRect();target={x:(e.clientX-r.left-width/2)/scale,y:-(e.clientY-r.top-height/2)/scale};}
 overlay.addEventListener('pointerdown',e=>{overlay.focus();overlay.setPointerCapture(e.pointerId);point(e);});overlay.addEventListener('pointermove',e=>{if(overlay.hasPointerCapture(e.pointerId))point(e);});overlay.addEventListener('pointerup',()=>target=null);overlay.addEventListener('pointercancel',()=>target=null);
-$('reset').onclick=()=>reset();$('views').onclick=e=>{if(!e.target.dataset.view)return;mode=e.target.dataset.view;for(const b of $('views').children)b.classList.toggle('active',b.dataset.view===mode);$('view-help').textContent=mode==='top'?'The entire terrain changes when you cross the cut.':mode==='night'?'Only nearby terrain is visible. Cuts remain visible everywhere.':'A forward cone of rays, analytically continued from your sheet. Cuts are hidden.';document.querySelector('.legend').style.visibility=mode==='player'?'hidden':'visible';};$('scalar').onchange=e=>{scalar=+e.target.value;$('scalar-name').textContent=['Re f','Im f','|f|'][scalar];if(scalar===2)notice(`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`,5);};reset();requestAnimationFrame(frame);
+$('reset').onclick=()=>reset();$('views').onclick=e=>{if(!e.target.dataset.view)return;mode=e.target.dataset.view;for(const b of $('views').children)b.classList.toggle('active',b.dataset.view===mode);$('view-help').textContent=mode==='top'?'The entire terrain changes when you cross the cut.':mode==='night'?'Only nearby terrain is visible. Cuts remain visible everywhere.':'Viewing rays continue onto other sheets. Only your character’s movement counts toward discoveries and sheet transitions; cuts are hidden.';document.querySelector('.legend').style.visibility=mode==='player'?'hidden':'visible';};$('scalar').onchange=e=>setTerrain(+e.target.value);
+$('terrain-cycle').onclick=()=>{cycleTerrain();overlay.focus({preventScroll:true});};
+$('turn-left').onclick=()=>{turn(Math.PI/4);overlay.focus({preventScroll:true});};
+$('turn-right').onclick=()=>{turn(-Math.PI/4);overlay.focus({preventScroll:true});};
+reset();requestAnimationFrame(frame);

@@ -1,10 +1,11 @@
 import { levels } from './math.js';
 export const STORAGE_KEY = 'analytic-rpg-progress-v1';
 export const AWARDS = [
-  { count: 2, name: 'Beyond the principal', icon: '✧', description: 'Visit 2 distinct sheets' },
-  { count: 3, name: 'Sheet explorer', icon: '✦', description: 'Visit 3 distinct sheets' },
-  { count: 5, name: 'Surface cartographer', icon: '❖', description: 'Visit 5 distinct sheets' },
-  { count: 7, name: 'Branch-point voyager', icon: '✺', description: 'Visit all 7 available sheets' },
+  { count: 2, name: 'Beyond the principal', icon: '✧', description: 'Enter 2 sheets across levels' },
+  { count: 3, name: 'Sheet explorer', icon: '✦', description: 'Enter 3 sheets across levels' },
+  { count: 5, name: 'Surface cartographer', icon: '❖', description: 'Enter 5 sheets across levels' },
+  { count: 7, name: 'Branch-point voyager', icon: '✺', description: 'Enter 7 sheets across levels' },
+  { count: 11, name: 'Independent-root navigator', icon: '✥', description: 'Enter all 11 sheets across 4 levels' },
 ];
 const validSheets = new Set(levels.flatMap(level => level.labels.map(label => `${level.id}:${label}`)));
 export const TOTAL_SHEETS = validSheets.size;
@@ -28,4 +29,8 @@ export function visitSheet(progress, levelId, label) {
   const id = `${levelId}:${label}`, before = progress.visited.size;
   if (validSheets.has(id)) progress.visited.add(id);
   return AWARDS.filter(a => before < a.count && progress.visited.size >= a.count);
+}
+
+export function exploredInLevel(progress, level) {
+  return level.labels.filter(label => progress.visited.has(`${level.id}:${label}`)).length;
 }

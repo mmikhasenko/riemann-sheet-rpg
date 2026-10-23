@@ -46,6 +46,12 @@ export function twoPointRoot(z, label = 1) {
   const v = sqrt({ x: z.x - TWO_POINT_B, y: z.y });
   return { x: label * (u.x * v.x - u.y * v.y), y: label * (u.x * v.y + u.y * v.x) };
 }
+// Bits encode independent signs: bit 0 negates sqrt(s-a), bit 1 negates sqrt(s-b).
+export function rootSum(z, label = 0) {
+  const u=sqrt({x:z.x-TWO_POINT_A,y:z.y},label & 1 ? -1 : 1);
+  const v=sqrt({x:z.x-TWO_POINT_B,y:z.y},label & 2 ? -1 : 1);
+  return {x:u.x+2*v.x,y:u.y+2*v.y};
+}
 export const levels = [
   {
     ...level, labels: [1,-1], menuNote: 'two turns to return', id: 'sqrt', number: '01', shader: 0, initialLabel: 1, chestLabel: -1,
@@ -77,5 +83,23 @@ export const levels = [
     subtitle: 'a = −1.5 · b = 1.5 · A finite cut connects two branch points.',
     note: 'Circle either branch point to change sheets. Circle both and return to the same sheet. Cross the segment between a = −1.5 and b = 1.5 to find the chest.',
     cutLabel: 'σ ↦ −σ', labelName: label => label === 1 ? 'I' : 'II',
+  },
+  {
+    id: 'root-sum', number: '04', shader: 3, initialLabel: 0, chestLabel: 3,
+    labels: [0,1,2,3], menuNote: 'two independent root signs',
+    evaluate: rootSum,
+    // Disjoint intervals combine coincident cuts: a left crossing flips both roots.
+    cuts: [
+      { a: {x:-1e6,y:0}, b: {x:TWO_POINT_A,y:0}, map: label=>label^3, caption:'flip both signs' },
+      { a: {x:TWO_POINT_A,y:0}, b: {x:TWO_POINT_B,y:0}, map: label=>label^2, caption:'flip σb' },
+    ],
+    branchPoints: [
+      {x:TWO_POINT_A,y:0,radius:.24,name:'a = −1.5'},
+      {x:TWO_POINT_B,y:0,radius:.24,name:'b = 1.5'},
+    ],
+    title:'Independent roots', formula:'√(s−a) + 2√(s−b)', worlds:'Four sheets.', sheets:'FOUR SHEETS',
+    subtitle:'a = −1.5 · b = 1.5 · Each root carries its own sign.',
+    note:'Sheets are (σa, σb). Circle a to flip σa; circle b to flip σb. Left of a, crossing flips both. Find the chest on (−,−).',
+    cutLabel:'independent sign flips', labelName:label=>['I (+,+)','II (−,+)','III (+,−)','IV (−,−)'][label],
   },
 ];
