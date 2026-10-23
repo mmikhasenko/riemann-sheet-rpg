@@ -1,3 +1,4 @@
+import {breitWigner, BW_POLE} from './breit-wigner.js';
 import {createQuadraticCut} from './curved-cut.js';
 // All CPU arithmetic uses JavaScript float64 numbers.
 import {sqrt} from './complex.js';
@@ -163,4 +164,17 @@ levels.push({
  note:'ΣⅠ = (ρₚ/π) Log((ρₚ−1)/(ρₚ+1)), ρₚ = √(1−1/s). Beyond threshold s = 1, crossing downward adds 1 and upward subtracts 1. Between 0 and 1, crossing sends n to −n. This cut and the obstacle at zero disappear on n = 0. Find the key on n = 0 and the chest on n = 1.',
  cutLabel:'shift n ± 1 · reflect n ↦ −n',labelName:n=>n===0?'I (n = 0)':n===1?'II (n = 1)':`n = ${n}`,
  magnitudeNote:'Chew–Mandelstam magnitudes differ between sheets. Im f reveals the physical threshold and continued branches.',
+});
+
+levels.push({
+ id:'breit-wigner',number:'07',shader:7,initialLabel:1,chestLabel:-1,labels:[1,-1],
+ title:'First Pole',formula:'1 / (M² − s − ig²ρ(s))',worlds:'A hidden resonance.',sheets:'TWO SHEETS',
+ evaluate:breitWigner,defaultScalar:2,terrainRange:4,start:{x:.5,y:-2},chest:BW_POLE,chestRadius:.25,
+ cuts:[{a:{x:-1e6,y:0},b:{x:0,y:0},map:n=>-n,caption:'σ ↦ −σ'},
+       {a:{x:1,y:0},b:{x:1e6,y:0},map:n=>-n,caption:'σ ↦ −σ'}],
+ branchPoints:[{x:0,y:0,radius:.24,name:'0'},{x:1,y:0,radius:.24,name:'4m² = 1'}],
+ subtitle:'Breit–Wigner · M² = 2.5 · g² = 0.8 · 4m² = 1 · Find the pole on Sheet II.',
+ note:'The physical phase space is ρⅠ(s) = i√(1−s)/√s, positive just above threshold. Each exterior cut flips its sign; the interval (0,1) is continuous. Circle either branch point to change sheets, or both to return. Collect the key on Sheet I, then approach the resonance pole on Sheet II to open its treasure.',
+ cutLabel:'σ ↦ −σ · resonance pole on II',labelName:n=>n===1?'I':'II',
+ magnitudeNote:'The amplitude magnitude differs between sheets. Its peak reveals the resonance pole on Sheet II.',
 });

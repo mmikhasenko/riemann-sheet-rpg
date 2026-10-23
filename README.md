@@ -81,3 +81,11 @@ The float64 evaluator and GLSL share the same conventions. Near zero, the physic
 Mission: start at −2−2i on n=0, reach the key at 2+2i by going left of threshold, then cross the right-hand cut downward to open the chest at 2−2i on n=1. Browser QA completed this in Player view, then crossed (0,1) to reach n=−1: three sheets, two transitions. All 48 tests pass, including independent RK4 integration of f′=f/[2s(s−1)]−1/(πs) around varied closed loops, bank continuity, exact-axis values, series stability, dynamic obstacles and persistence.
 
 Next planned: Level 7, Breit–Wigner with ρ (two sheets); Level 7★, Breit–Wigner with CM (the Level 6 sheet structure). Multichannel resonance amplitudes follow these. They are not yet playable.
+
+## Level 7: First Pole — Breit–Wigner with phase space
+
+Tσ(s)=1/[M²−s−ig²ρσ(s)], with M²=2.5, g²=0.8, threshold 4m²=1. The physical phase space is ρI=i√(1−s)/√s, with principal building-block roots and exact-axis upper-s-bank values. It is positive above threshold on the upper rim and continuous on (0,1). Each exterior cut (−∞,0) and (1,∞) flips σ. There are exactly two sheets, independently counted for awards.
+
+The treasure lies at the lower-half-plane Sheet II pole, s=2.45−0.6304760106459244i, calculated by Newton iteration of the unsquared denominator. The same point is regular on Sheet I. The mission begins at 0.5−2i, passes through the uncut interval to the key at 2+2i, then crosses the right-hand cut to reach the pole. Both branch points remain obstacles; the pole is approachable treasure with a 0.25 collection radius. Generic per-level chest coordinates support later resonance levels. Magnitude is the default terrain; its colour scale runs from 0 to the level's maximum. CPU calculations are unregularized; GLSL clips the visual divergence within denominator magnitude 1e−5 and the excluded origin within |s|<1e−5.
+
+54 tests pass. New checks cover the phase-space square, physical banks, both cut maps, the unsquared pole equation, independent root tracking around each branch point and both, mission completion and two-sheet persistence. Browser QA completed the mission in Player view with two discoveries and one transition. Level 7★ with CM remains the next planned level.
