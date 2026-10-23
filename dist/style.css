@@ -9,3 +9,5 @@
 .world-bottom{height:auto;min-height:58px;flex-wrap:wrap;gap:14px}.shortcut-controls{display:flex;gap:8px;flex-wrap:wrap}.shortcut-controls button{background:#192c30;border:1px solid #3a4c50;border-radius:4px;padding:7px 9px;font-size:11px;color:var(--mint)}.shortcut-controls kbd,.world-actions kbd{border:0;padding:0 4px 0 0}.shortcut-controls button:hover{border-color:var(--mint)}@media(max-width:720px){.world-bottom>span{max-width:100%}.shortcut-controls{order:3;width:100%}.shortcut-controls button{flex:1}}
 
 .level-card{flex-wrap:nowrap!important}.level-card>span:first-child{flex:1}.formula{font-size:clamp(17px,2.4vw,32px)}
+
+.header-right{display:flex;align-items:center;gap:24px}.group-logo{display:block;flex:none;width:48px;height:48px;border-radius:6px;overflow:hidden;background:white;outline-offset:5px}.group-logo img{display:block;width:100%;height:100%;object-fit:contain}.group-logo:hover{box-shadow:0 0 0 2px var(--mint)}.group-logo:focus-visible{outline:2px solid var(--mint)}@media(max-width:720px){.header-right{gap:10px}.group-logo{width:40px;height:40px}.brand{font-size:11px;letter-spacing:1px;gap:9px}}

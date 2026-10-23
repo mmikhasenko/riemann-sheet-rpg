@@ -97,3 +97,11 @@ Echo evaluates 1/[M²−s−g²Σ̃n(s)], with Σ̃n(s)=Σn(s)−Re ΣI(sth). Th
 The cut maps, dynamic origin obstacle and integer labels are shared directly with Level 6. The independently saved Echo discoveries are unbounded. The chest is at the n=1 lower-half-plane pole s≈2.9447195252392−0.754915675216394i, computed with Newton iteration of the unsquared denominator and the analytic CM derivative. At that location the n=0 amplitude is regular. Magnitude terrain defaults to 0–4 with the same visual pole clipping used by Level 7.
 
 All 59 tests pass, covering the subtraction, matching imaginary denominator, cut-bank continuity, shifted pole, dynamic obstacles, mission route, and independent saved progress. Browser QA completed the mission in Player view with two discoveries and one transition; Top view shows the pole and opened chest on n=1. Multichannel resonance levels are next.
+
+## GitHub Pages
+
+Repository: https://github.com/mmikhasenko/riemann-sheet-rpg
+
+Game: https://mmikhasenko.github.io/riemann-sheet-rpg/
+
+Pushes to `main` run the mathematical/gameplay tests, upload only `dist/`, and deploy through GitHub Actions to Pages. Assets use relative paths for project-site hosting. The linked Mikhasenko Group logo is in the top-right corner. Sites hosting remains configured separately; browser progress is stored independently on each origin.
