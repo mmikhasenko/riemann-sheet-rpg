@@ -109,3 +109,9 @@ Pushes to `main` run the mathematical/gameplay tests, upload only `dist/`, and d
 ## Exploration defaults and references
 
 Every expedition and restart now begins in Player view with Im f terrain. Keys no longer disclose coordinates and are only drawn within one map unit, subject to the current view and transported sheet; collection still requires the player's own sheet and the existing 0.4 radius. The footer centers Mikhail Mikhasenko's name and a References button. Its accessible modal links to K-matrix day, the 2026 PDG resonance review, and the Scattering Theory encyclopedia entry. Opening it pauses movement and hazards; Escape or the close button restores focus to References. Browser checks confirmed distant/nearby key visibility, defaults, the footer, modal links, and pause behavior. All 59 existing tests pass.
+
+## Off-sheet navigation objectives
+
+Both objective panels show a sheet label and exact s coordinates. Both markers now require proximity within one unit as well as visibility on the displayed sheet. Every key and chest is on a non-starting sheet: the two-sheet levels necessarily place both on the other sheet. Keys and ordinary chests have level-specific outer-plane locations with |s|≈4.6–4.7, inside the hazard radius 5.5. Resonance chests remain at their computed poles. Key labels and coordinates are level data; the starting label no longer determines a key's sheet. Field notes reflect the revised goals.
+
+69 tests pass, including graph searches using the actual movement/cut rules that reach each new key and then chest without entering the infinity hazard. Browser QA completed the revised Level 1 in Player view, finding both objectives on Sheet II with one transition and full stability. Existing saved discoveries and completed levels remain intact.

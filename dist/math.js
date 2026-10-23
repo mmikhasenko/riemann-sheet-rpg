@@ -137,7 +137,7 @@ export const levels = [
     branchPoints:[{x:0,y:0,radius:.24}],
     title:'Lost',formula:'log s',worlds:'Endless sheets.',sheets:'INFINITELY MANY SHEETS',
     subtitle:'Every turn adds a new branch. There is no final sheet.',
-    note:'log(s;n) = Log(s) + 2πin. Cross the negative real axis downward to add 1, upward to subtract 1. Find the key on n = 0 and the chest on n = 2; keep exploring in either direction.',
+    note:'log(s;n) = Log(s) + 2πin. Cross the negative real axis downward to add 1, upward to subtract 1. Keep exploring in either direction. Use the objective sheet labels and coordinates to navigate.',
     cutLabel:'↓ n+1 · ↑ n−1',labelName:n=>`n = ${n}`,
   },
 ];
@@ -162,7 +162,7 @@ levels.push({
  ],
  branchPoints:[{x:0,y:0,radius:.24,name:'0',active:n=>n!==0},{x:CM_THRESHOLD,y:0,radius:.24,name:'4m² = 1'}],
  subtitle:'Chew–Mandelstam · m = ½ · The origin is regular on the physical sheet.',
- note:'ΣⅠ = (ρₚ/π) Log((ρₚ−1)/(ρₚ+1)), ρₚ = √(1−1/s). Beyond threshold s = 1, crossing downward adds 1 and upward subtracts 1. Between 0 and 1, crossing sends n to −n. This cut and the obstacle at zero disappear on n = 0. Find the key on n = 0 and the chest on n = 1.',
+ note:'ΣⅠ = (ρₚ/π) Log((ρₚ−1)/(ρₚ+1)), ρₚ = √(1−1/s). Beyond threshold s = 1, crossing downward adds 1 and upward subtracts 1. Between 0 and 1, crossing sends n to −n. This cut and the obstacle at zero disappear on n = 0. Use the objective sheet labels and coordinates to navigate.',
  cutLabel:'shift n ± 1 · reflect n ↦ −n',labelName:n=>n===0?'I (n = 0)':n===1?'II (n = 1)':`n = ${n}`,
  magnitudeNote:'Chew–Mandelstam magnitudes differ between sheets. Im f reveals the physical threshold and continued branches.',
 });
@@ -175,7 +175,7 @@ levels.push({
        {a:{x:1,y:0},b:{x:1e6,y:0},map:n=>-n,caption:'σ ↦ −σ'}],
  branchPoints:[{x:0,y:0,radius:.24,name:'0'},{x:1,y:0,radius:.24,name:'4m² = 1'}],
  subtitle:'Breit–Wigner · M² = 2.5 · g² = 0.8 · 4m² = 1 · Find the pole on Sheet II.',
- note:'The physical phase space is ρⅠ(s) = i√(1−s)/√s, positive just above threshold. Each exterior cut flips its sign; the interval (0,1) is continuous. Circle either branch point to change sheets, or both to return. Collect the key on Sheet I, then approach the resonance pole on Sheet II to open its treasure.',
+ note:'The physical phase space is ρⅠ(s) = i√(1−s)/√s, positive just above threshold. Each exterior cut flips its sign; the interval (0,1) is continuous. Circle either branch point to change sheets, or both to return. Find the key on Sheet II, then approach the resonance pole on that sheet to open its treasure.',
  cutLabel:'σ ↦ −σ · resonance pole on II',labelName:n=>n===1?'I':'II',
  magnitudeNote:'The amplitude magnitude differs between sheets. Its peak reveals the resonance pole on Sheet II.',
 });
@@ -186,7 +186,25 @@ levels.push({
  formula:'1 / (M² − s − g²Σ̃ₙ(s))',worlds:'A resonance, continued.',
  evaluate:breitWignerCM,defaultScalar:2,terrainRange:4,start:{x:.5,y:-2},chest:BW_CM_POLE,chestRadius:.25,
  subtitle:'Breit–Wigner with CM · M² = 2.5 · g² = 0.8 · 4m² = 1 · Subtracted at threshold.',
- note:'Σ̃ₙ(s) = Σₙ(s) − Re ΣⅠ(1). The subtraction is zero in this CM convention. Above threshold Im Σ̃Ⅰ = ρ, as in Level 7; the real part shifts the pole. The cuts and integer sheets are those of Threshold: shift n on the right cut, reflect n on (0,1). Zero is regular on n = 0. Collect the key there, then find the pole treasure on n = 1.',
+ note:'Σ̃ₙ(s) = Σₙ(s) − Re ΣⅠ(1). The subtraction is zero in this CM convention. Above threshold Im Σ̃Ⅰ = ρ, as in Level 7; the real part shifts the pole. The cuts and integer sheets are those of Threshold: shift n on the right cut, reflect n on (0,1). Zero is regular on n = 0. Find the key on n = −1, then the pole treasure on n = 1.',
  cutLabel:'CM sheet maps · resonance pole on n = 1',
  magnitudeNote:'The magnitude reveals the CM resonance pole. Its position differs from Level 7 because the real part of CM remains away from threshold.',
 });
+
+// Objective coordinates are explicit navigation clues, inside the infinity hazard.
+// Two-sheet levels necessarily put both objectives on the same non-starting sheet.
+const objectiveLocations={
+ 'sqrt':{key:{x:-3.5,y:-3},keyLabel:-1,chest:{x:3.5,y:3}},
+ 'cube':{key:{x:-4,y:2.5},keyLabel:1,chest:{x:3.5,y:-3}},
+ 'two-point':{key:{x:3.5,y:-3},keyLabel:-1,chest:{x:-3.5,y:3}},
+ 'rotated-root':{key:{x:3.5,y:3},keyLabel:-1,chest:{x:-3.5,y:-3}},
+ 'root-sum':{key:{x:-3.5,y:3},keyLabel:1,chest:{x:3.5,y:-3}},
+ 'log':{key:{x:-3.5,y:-3},keyLabel:1,chest:{x:3.5,y:3}},
+ 'cm':{key:{x:-3.5,y:3},keyLabel:-1,chest:{x:3.5,y:-3}},
+ 'breit-wigner':{key:{x:-3.5,y:3},keyLabel:-1},
+ 'breit-wigner-cm':{key:{x:-3.5,y:3},keyLabel:-1},
+};
+for(const level of levels){
+ level.chestIsPole=['breit-wigner','breit-wigner-cm'].includes(level.id);
+ Object.assign(level,objectiveLocations[level.id]);
+}
