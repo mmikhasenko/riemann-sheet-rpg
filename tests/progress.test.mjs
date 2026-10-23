@@ -25,3 +25,12 @@ test('corrupt or unavailable browser storage does not break gameplay',()=>{
  const p=readProgress(store);assert.deepEqual([...p.visited],['sqrt:1']);assert.deepEqual([...p.completed],['sqrt']);
  assert.equal(readProgress(null).visited.size,0);assert.equal(saveProgress(null,p),false);
 });
+test('existing five-sheet saves retain awards and expand to seven without duplicate credit',()=>{
+ const store=memory();store.setItem(STORAGE_KEY,JSON.stringify({visited:['sqrt:1','sqrt:-1','cube:0','cube:1','cube:2'],completed:['sqrt','cube']}));
+ const p=readProgress(store);assert.equal(p.visited.size,5);assert.equal(p.completed.size,2);
+ assert.deepEqual(visitSheet(p,'two-point',1),[]);
+ assert.equal(visitSheet(p,'two-point',-1)[0].count,7);
+ assert.deepEqual(visitSheet(p,'two-point',-1),[]);
+ p.completed.add('two-point');assert.ok(saveProgress(store,p));
+ const loaded=readProgress(store);assert.equal(loaded.visited.size,7);assert.ok(loaded.completed.has('two-point'));
+});

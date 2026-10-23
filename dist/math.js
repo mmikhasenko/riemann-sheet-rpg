@@ -37,16 +37,25 @@ export function cubeRoot(z, label = 0) {
   const angle = (Math.atan2(z.y === 0 ? 0 : z.y, z.x) + 2 * Math.PI * label) / 3;
   return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
 }
+export const TWO_POINT_A = -1.5;
+export const TWO_POINT_B = 1.5;
+// Product of principal roots: their jumps cancel to the left of a.
+// The remaining cut is [a,b]; do not substitute principal sqrt((s-a)(s-b)).
+export function twoPointRoot(z, label = 1) {
+  const u = sqrt({ x: z.x - TWO_POINT_A, y: z.y });
+  const v = sqrt({ x: z.x - TWO_POINT_B, y: z.y });
+  return { x: label * (u.x * v.x - u.y * v.y), y: label * (u.x * v.y + u.y * v.x) };
+}
 export const levels = [
   {
-    ...level, id: 'sqrt', number: '01', shader: 0, initialLabel: 1, chestLabel: -1,
+    ...level, labels: [1,-1], menuNote: 'two turns to return', id: 'sqrt', number: '01', shader: 0, initialLabel: 1, chestLabel: -1,
     title: 'The other side', formula: '√s', worlds: 'Two worlds.', sheets: 'TWO SHEETS',
     subtitle: 'Follow the square root beyond its principal branch.',
     note: 'A full turn around zero changes the sign. Two turns bring you home.',
     cutLabel: 'σ ↦ −σ', labelName: label => label === 1 ? 'I' : 'II',
   },
   {
-    id: 'cube', number: '02', shader: 1, initialLabel: 0, chestLabel: 2,
+    labels: [0,1,2], menuNote: 'three turns to return', id: 'cube', number: '02', shader: 1, initialLabel: 0, chestLabel: 2,
     evaluate: cubeRoot,
     cuts: [{ a: { x: -1e6, y: 0 }, b: { x: 0, y: 0 }, map: (label, direction) => (label - direction + 3) % 3 }],
     branchPoints: [{ x: 0, y: 0, radius: .24 }],
@@ -54,5 +63,19 @@ export const levels = [
     subtitle: 'Discover the three branches of the cube root.',
     note: 'Downward crossings add 1 modulo 3; upward crossings subtract 1. Three turns bring you home.',
     cutLabel: 'k ↦ k ± 1 (mod 3)', labelName: label => ['I (k = 0)', 'II (k = 1)', 'III (k = 2)'][label],
+  },
+  {
+    id: 'two-point', number: '03', shader: 2, initialLabel: 1, chestLabel: -1,
+    labels: [1,-1], menuNote: 'circle one point to change sheets',
+    evaluate: twoPointRoot,
+    cuts: [{ a: { x: TWO_POINT_A, y: 0 }, b: { x: TWO_POINT_B, y: 0 }, map: label => -label }],
+    branchPoints: [
+      { x: TWO_POINT_A, y: 0, radius: .24, name: 'a = −1.5' },
+      { x: TWO_POINT_B, y: 0, radius: .24, name: 'b = 1.5' },
+    ],
+    title: 'Between two points', formula: '√((s−a)(s−b))', worlds: 'Two branch points.', sheets: 'TWO SHEETS',
+    subtitle: 'a = −1.5 · b = 1.5 · A finite cut connects two branch points.',
+    note: 'Circle either branch point to change sheets. Circle both and return to the same sheet. Cross the segment between a = −1.5 and b = 1.5 to find the chest.',
+    cutLabel: 'σ ↦ −σ', labelName: label => label === 1 ? 'I' : 'II',
   },
 ];
