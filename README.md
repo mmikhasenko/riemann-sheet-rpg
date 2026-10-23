@@ -1,6 +1,6 @@
 # Analytic Continuation RPG
 
-Four playable expeditions: Level 1 (square root), Level 2 (cube root), Level 3 (product of two roots), and Level 4 (sum of independent roots).
+Five playable expeditions: square root, cube root, product of two roots, sum of independent roots, and logarithm.
 
 Run `npm start`, then open http://localhost:4173. Run `npm test` for the float64 mathematics checks. No installation or build step is needed.
 
@@ -8,7 +8,7 @@ WASD / arrows move; holding or dragging on the map also moves toward the pointer
 
 Top, night, and player-cone views offer Re f, Im f, and magnitude terrain. CPU labels and gameplay use float64; WebGL2 terrain uses float32. Player rays apply the same crossing convention as movement. The exact cut belongs to the upper bank. The origin is protected by a finite obstacle disk, including segment collision checks to prevent tunneling.
 
-The prototype is buildless JavaScript with ES modules, not yet TypeScript. Levels 1–4 are implemented. Levels 5–10 are marked as unavailable in the level menu. The cut intersection routine currently supports horizontal cuts; general segments and other label types belong to the next engine iteration. The player view is a 2D colour/contour graph, not a 3D mesh. Awards and completed levels persist in localStorage; position and in-progress runs do not. If browser storage is unavailable, progress stays in memory and the UI explains that limit. External Google Fonts are cosmetic; system fallbacks work without them.
+The prototype is buildless JavaScript with ES modules, not yet TypeScript. Levels 1–5 are implemented. Levels 6–10 are marked as unavailable in the level menu. The cut intersection routine currently supports horizontal cuts; general segments and other label types belong to the next engine iteration. The player view is a 2D colour/contour graph, not a 3D mesh. Awards and completed levels persist in localStorage; position and in-progress runs do not. If browser storage is unavailable, progress stays in memory and the UI explains that limit. External Google Fonts are cosmetic; system fallbacks work without them.
 
 Before Level 9, resolve the branch convention: principal sqrt(s−threshold)/sqrt(s) has an interior cut. The intended exterior cuts can instead be represented by i*sqrt(threshold−s)/sqrt(s), with a specified boundary convention. No resonance physics is implemented here.
 
@@ -55,3 +55,11 @@ Unlike the preceding root functions, magnitude can distinguish relative signs he
 ## Keyboard and on-screen controls
 
 T cycles terrain Re f → Im f → magnitude → Re f. R restarts the current expedition, keeping saved awards. Q/E continuously turn left/right at 180° per second without moving the character; matching buttons turn by 45° per click. WASD/arrows retain world-axis movement. Movement faces its direction unless a turn key is held. Shortcut actions ignore modifier chords and text/select editing; T and turning pause in menus, while R can restart from the menu. T/R ignore key repeat. Turning does not change sheet or discoveries. Browser checks verified the terrain cycle, stationary Q/E turning, button controls, and R restoring position. These controls are included with Level 4 and the counter clarifications.
+
+## Current Level 4 and logarithm Level 5
+
+Level 4 is σa sqrt(s−a)+2σb sqrt(b−s), a=−1.5 and b=1.5, with four sheets. Left of a, only σa flips; right of b, only σb flips; between a and b there is no cut. The exact real s-axis uses its upper bank, which becomes the lower bank for sqrt(b−s). CPU and GPU evaluators implement this via conjugation. This supersedes the earlier Level 4 formula documented above.
+
+Level 5 is Log(s)+2πin, with downward negative-axis crossings incrementing n and upward crossings decrementing n. The key is on n=0 and the chest on n=2. Im f is the default terrain, with colour scale ±20. Only visited integer sheets are stored; counters show ∞. CPU labels are JavaScript safe integers; rendering uses float32. Awards extend to 15 and 25 discoveries.
+
+33 tests cover root identities, cuts, independent continuation, logarithm winding, persistence and counting. Both missions were completed in browser Player view during development.

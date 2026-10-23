@@ -46,11 +46,15 @@ export function twoPointRoot(z, label = 1) {
   const v = sqrt({ x: z.x - TWO_POINT_B, y: z.y });
   return { x: label * (u.x * v.x - u.y * v.y), y: label * (u.x * v.y + u.y * v.x) };
 }
-// Bits encode independent signs: bit 0 negates sqrt(s-a), bit 1 negates sqrt(s-b).
+// Bits encode independent signs: bit 0 negates sqrt(s-a), bit 1 negates sqrt(b-s).
 export function rootSum(z, label = 0) {
   const u=sqrt({x:z.x-TWO_POINT_A,y:z.y},label & 1 ? -1 : 1);
-  const v=sqrt({x:z.x-TWO_POINT_B,y:z.y},label & 2 ? -1 : 1);
+  const w=sqrt({x:TWO_POINT_B-z.x,y:z.y},label & 2 ? -1 : 1);
+  const v={x:w.x,y:-w.y}; // upper s-bank maps to lower bank of b-s
   return {x:u.x+2*v.x,y:u.y+2*v.y};
+}
+export function logarithm(z, n = 0) {
+  return { x: Math.log(Math.hypot(z.x,z.y)), y: Math.atan2(z.y===0?0:z.y,z.x)+2*Math.PI*n };
 }
 export const levels = [
   {
@@ -88,18 +92,29 @@ export const levels = [
     id: 'root-sum', number: '04', shader: 3, initialLabel: 0, chestLabel: 3,
     labels: [0,1,2,3], menuNote: 'two independent root signs',
     evaluate: rootSum,
-    // Disjoint intervals combine coincident cuts: a left crossing flips both roots.
+    // Exterior cuts flip the roots independently; (a,b) has no cut.
     cuts: [
-      { a: {x:-1e6,y:0}, b: {x:TWO_POINT_A,y:0}, map: label=>label^3, caption:'flip both signs' },
-      { a: {x:TWO_POINT_A,y:0}, b: {x:TWO_POINT_B,y:0}, map: label=>label^2, caption:'flip σb' },
+      { a: {x:-1e6,y:0}, b: {x:TWO_POINT_A,y:0}, map: label=>label^1, caption:'flip σa' },
+      { a: {x:TWO_POINT_B,y:0}, b: {x:1e6,y:0}, map: label=>label^2, caption:'flip σb' },
     ],
     branchPoints: [
       {x:TWO_POINT_A,y:0,radius:.24,name:'a = −1.5'},
       {x:TWO_POINT_B,y:0,radius:.24,name:'b = 1.5'},
     ],
-    title:'Independent roots', formula:'√(s−a) + 2√(s−b)', worlds:'Four sheets.', sheets:'FOUR SHEETS',
+    title:'Independent roots', formula:'√(s−a) + 2√(b−s)', worlds:'Four sheets.', sheets:'FOUR SHEETS',
     subtitle:'a = −1.5 · b = 1.5 · Each root carries its own sign.',
-    note:'Sheets are (σa, σb). Circle a to flip σa; circle b to flip σb. Left of a, crossing flips both. Find the chest on (−,−).',
+    note:'Sheets are (σa, σb). Circle a to flip σa; circle b to flip σb. The left cut flips σa, the right cut flips σb; between a and b there is no cut. Find the chest on (−,−).',
     cutLabel:'independent sign flips', labelName:label=>['I (+,+)','II (−,+)','III (+,−)','IV (−,−)'][label],
+  },
+  {
+    id:'log', number:'05', shader:4, initialLabel:0, chestLabel:2,
+    labels:null, menuNote:'n ∈ ℤ · each turn changes n',
+    evaluate:logarithm, defaultScalar:1, terrainRange:20,
+    cuts:[{a:{x:-1e6,y:0},b:{x:0,y:0},map:(n,direction)=>n-direction}],
+    branchPoints:[{x:0,y:0,radius:.24}],
+    title:'The infinite staircase',formula:'log s',worlds:'Endless sheets.',sheets:'INFINITELY MANY SHEETS',
+    subtitle:'Every turn adds a new branch. There is no final sheet.',
+    note:'log(s;n) = Log(s) + 2πin. Cross the negative real axis downward to add 1, upward to subtract 1. Find the key on n = 0 and the chest on n = 2; keep exploring in either direction.',
+    cutLabel:'↓ n+1 · ↑ n−1',labelName:n=>`n = ${n}`,
   },
 ];

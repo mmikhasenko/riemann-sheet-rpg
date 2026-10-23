@@ -15,9 +15,9 @@ function awardsMarkup(){return AWARDS.map(a=>{
   return `<div class="award-row ${earned?'earned':''}"><span class="award-icon">${a.icon}</span><div><b>${a.name}</b><small>${a.description}</small></div><span class="award-status">${earned?'✓':`${progress.visited.size}/${a.count}`}</span></div>`;
 }).join('');}
 function refreshProgress(){
-  $('visited-count').textContent=`${exploredInLevel(progress,activeLevel)} / ${activeLevel.labels.length}`;
+  $('visited-count').textContent=`${exploredInLevel(progress,activeLevel)} / ${activeLevel.labels?.length??'∞'}`;
   $('level-discovery-label').textContent=`sheets entered · Level ${activeLevel.number} (saved)`;
-  $('total-discovery-count').textContent=`Across all ${levels.length} levels: ${progress.visited.size} / ${TOTAL_SHEETS} sheets entered`;
+  $('total-discovery-count').textContent=`Across all ${levels.length} levels: ${progress.visited.size} / ${Number.isFinite(TOTAL_SHEETS)?TOTAL_SHEETS:'∞'} sheets entered`;
   $('movement-count').textContent=`This run: ${state.crossings} player sheet transition${state.crossings===1?'':'s'}`;
   $('award-shelf').innerHTML=AWARDS.map(a=>`<span class="award-mini ${progress.visited.size>=a.count?'earned':''}" title="${a.name}: ${a.description}" aria-label="${a.name}: ${progress.visited.size>=a.count?'earned':`${a.count} sheets needed`}">${a.icon} ${a.count}</span>`).join('');
   $('menu-awards').innerHTML=awardsMarkup();
@@ -50,8 +50,8 @@ function reset(index=levelIndex){
   document.querySelector('.insight > span').textContent=`↳ FIELD NOTE ${activeLevel.number}`;
   document.querySelector('.insight p').textContent=activeLevel.note;
   document.querySelector('footer span:last-child').textContent=`FLOAT64 LOGIC · WEBGL2 TERRAIN · ${activeLevel.cutLabel}`;
-  notice(`Find the key on Sheet I, then the chest on Sheet ${activeLevel.labelName(chest.label)}.`,8);
-  discover();overlay.focus({preventScroll:true});
+  notice(`Find the key on Sheet ${activeLevel.labelName(key.label)}, then the chest on Sheet ${activeLevel.labelName(chest.label)}.`,8);
+  setTerrain(activeLevel.defaultScalar??0);discover();overlay.focus({preventScroll:true});
 }
 function showLevelSelection(){
   $('level-selection').hidden=false;
@@ -65,7 +65,7 @@ function showMenu(kind='levels'){
   $('menu-emblem').textContent=complete?'✦':dead?'↻':'❖';
   $('menu-title').textContent=complete?'A world beyond the cut.':dead?'Lost to infinity.':'Choose your next world.';
   $('menu-description').textContent=complete?`You opened the chest on Sheet ${activeLevel.labelName(chest.label)}. Your discoveries are recorded. Where to next?`:dead?'Your discoveries are safe. Start a fresh expedition or choose another level.':'Awards count sheets your character enters, including the starting sheet. Viewing rays do not count.';
-  $('run-stats').innerHTML=`<span><b>${state.visited.size} / ${activeLevel.labels.length}</b>sheets entered this run<br>Level ${activeLevel.number}</span><span><b>${state.crossings}</b>player sheet transitions<br>this run</span><span><b>${progress.visited.size} / ${TOTAL_SHEETS}</b>sheets entered<br>across ${levels.length} levels</span>`;
+  $('run-stats').innerHTML=`<span><b>${state.visited.size} / ${activeLevel.labels?.length??'∞'}</b>sheets entered this run<br>Level ${activeLevel.number}</span><span><b>${state.crossings}</b>player sheet transitions<br>this run</span><span><b>${progress.visited.size} / ${Number.isFinite(TOTAL_SHEETS)?TOTAL_SHEETS:'∞'}</b>sheets entered<br>across ${levels.length} levels</span>`;
   $('next-level').hidden=!complete||levelIndex>=levels.length-1;
   $('next-level').textContent=levelIndex<levels.length-1?`Next: ${levels[levelIndex+1].formula} →`:'Next level';
   $('explore').hidden=dead;$('explore').textContent=state.won?'Keep exploring':'Resume expedition';
@@ -88,15 +88,16 @@ if(gl){
  const vert=`#version 300 es
  in vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
  const frag=`#version 300 es
- precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs;uniform float signSheet,heading;uniform int mode,scalar,functionKind;
+ precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs;uniform float signSheet,heading,terrainRange;uniform int mode,scalar,functionKind;
  vec2 principalRoot(vec2 z){float r=length(z);return vec2(sqrt(max(0.,(r+z.x)*.5)),(z.y<0.?-1.:1.)*sqrt(max(0.,(r-z.x)*.5)));}
  void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;
- if(mode==2 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==3){if(x>=cutBounds.x && x<branchXs.y)label=float(int(label) ^ (x<branchXs.x?3:2));}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else label=-label;}}
+ if(mode==2 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
  float r=length(s);vec2 root=vec2(sqrt(max(0.,(r+s.x)*.5)),(s.y<0.?-1.:1.)*sqrt(max(0.,(r-s.x)*.5)))*label;
  if(functionKind==1){float angle=(atan(s.y,s.x)+6.28318530718*label)/3.;root=pow(r,1./3.)*vec2(cos(angle),sin(angle));}
  if(functionKind==2){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));root=label*vec2(u.x*w.x-u.y*w.y,u.x*w.y+u.y*w.x);}
- if(functionKind==3){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));int bits=int(label);root=((bits&1)==0?1.:-1.)*u+2.*((bits&2)==0?1.:-1.)*w;}
- float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(.5+v/6.,0.,1.);
+ if(functionKind==3){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(branchXs.y-s.x,s.y))*vec2(1.,-1.);int bits=int(label);root=((bits&1)==0?1.:-1.)*u+2.*((bits&2)==0?1.:-1.)*w;}
+ if(functionKind==4)root=vec2(log(max(r,1e-20)),atan(s.y,s.x)+6.28318530718*label);
+ float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(.5+v/(2.*terrainRange),0.,1.);
  vec3 low=vec3(.055,.17,.24),mid=vec3(.19,.39,.39),high=vec3(.69,.72,.44);vec3 c=t<.5?mix(low,mid,t*2.):mix(mid,high,(t-.5)*2.);
  float contour=abs(fract(v*5.+.5)-.5);float line=1.-smoothstep(.015,.015+fwidth(v)*7.,contour);c*=1.-.22*line;
  vec2 grid=abs(fract(s+.5)-.5);vec2 aa=fwidth(s);float gridline=1.-min(smoothstep(0.,aa.x*1.2,grid.x),smoothstep(0.,aa.y*1.2,grid.y));c=mix(c,vec3(.6,.8,.72),gridline*.075);
@@ -106,20 +107,20 @@ if(gl){
  function shader(type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh;}
  program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'a');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
- for(const name of ['resolution','player','signSheet','heading','mode','scalar','functionKind','cutBounds','branchXs'])uniforms[name]=gl.getUniformLocation(program,name);
+ for(const name of ['resolution','player','signSheet','heading','mode','scalar','functionKind','cutBounds','branchXs','terrainRange'])uniforms[name]=gl.getUniformLocation(program,name);
 }else{$('view-help').textContent='WebGL2 is unavailable. Map markers and gameplay remain available.';}
 function screen(p){return {x:width/2+p.x*scale,y:height/2-p.y*scale};}
 function visible(p){if(mode==='top')return true;const d=Math.hypot(p.x-state.x,p.y-state.y);if(mode==='night')return d<2;return d<.45||(d<5&&((p.x-state.x)*Math.cos(heading)+(p.y-state.y)*Math.sin(heading))/d>.5);}
 function drawObject(p,type){const label=mode==='player'?transport(state,p,state.label,activeLevel.cuts):state.label;if(p.label!==label||!visible(p)||(type==='key'&&state.key))return;const q=screen(p);ctx.save();ctx.translate(q.x,q.y);ctx.strokeStyle='#f0ce8f';ctx.fillStyle='#17282a';ctx.lineWidth=2;ctx.shadowColor='#d9b76c';ctx.shadowBlur=14;if(type==='key'){ctx.beginPath();ctx.arc(-4,-5,6,0,Math.PI*2);ctx.moveTo(0,0);ctx.lineTo(10,10);ctx.lineTo(15,5);ctx.moveTo(7,7);ctx.lineTo(11,3);ctx.stroke();}else{ctx.fillRect(-12,-8,24,18);ctx.strokeRect(-12,-8,24,18);ctx.beginPath();ctx.moveTo(-12,-1);ctx.lineTo(12,-1);ctx.stroke();ctx.fillStyle='#f0ce8f';ctx.fillRect(-2,-3,4,7);}ctx.shadowBlur=0;ctx.font='9px "DM Sans", sans-serif';ctx.textAlign='center';ctx.fillStyle='#ebd6b2';ctx.fillText(type==='key'?'BRASS KEY':state.won?'CHEST OPENED':'HIDDEN CHEST',0,32);ctx.restore();}
 function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);width=rect.width;height=rect.height;scale=height/12;if(overlay.width!==Math.round(width*dpr)||overlay.height!==Math.round(height*dpr)){overlay.width=canvas.width=Math.round(width*dpr);overlay.height=canvas.height=Math.round(height*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
- if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.player,state.x,state.y);gl.uniform1f(uniforms.signSheet,state.label);gl.uniform1f(uniforms.heading,heading);gl.uniform1i(uniforms.mode,['top','night','player'].indexOf(mode));gl.uniform1i(uniforms.scalar,scalar);gl.uniform1i(uniforms.functionKind,activeLevel.shader);gl.uniform2f(uniforms.cutBounds,activeLevel.cuts[0].a.x,activeLevel.cuts[0].b.x);gl.uniform2f(uniforms.branchXs,activeLevel.branchPoints[0].x,activeLevel.branchPoints.at(-1).x);gl.drawArrays(gl.TRIANGLES,0,6);}
+ if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.player,state.x,state.y);gl.uniform1f(uniforms.signSheet,state.label);gl.uniform1f(uniforms.heading,heading);gl.uniform1i(uniforms.mode,['top','night','player'].indexOf(mode));gl.uniform1i(uniforms.scalar,scalar);gl.uniform1i(uniforms.functionKind,activeLevel.shader);gl.uniform1f(uniforms.terrainRange,activeLevel.terrainRange??3);gl.uniform2f(uniforms.cutBounds,activeLevel.cuts[0].a.x,activeLevel.cuts[0].b.x);gl.uniform2f(uniforms.branchXs,activeLevel.branchPoints[0].x,activeLevel.branchPoints.at(-1).x);gl.drawArrays(gl.TRIANGLES,0,6);}
  const origin=screen({x:0,y:0});
  ctx.strokeStyle='#d6a56888';ctx.lineWidth=1;ctx.setLineDash([4,7]);
  if(mode!=='player')for(const cut of activeLevel.cuts){
    const start=screen(cut.a),end=screen(cut.b);
    ctx.beginPath();ctx.moveTo(Math.max(0,start.x),start.y);ctx.lineTo(Math.min(width,end.x),end.y);ctx.stroke();
    ctx.font='9px monospace';ctx.fillStyle='#e1bc7b';
-   ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+end.x)/2-24),start.y-12);
+   ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+Math.min(width,end.x))/2-24),start.y-12);
  }
  ctx.setLineDash([]);ctx.strokeStyle='#bc83824a';ctx.beginPath();ctx.arc(origin.x,origin.y,5.5*scale,0,Math.PI*2);ctx.stroke();
  for(const branch of activeLevel.branchPoints)if(visible(branch)){
@@ -135,12 +136,13 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
  for(const [id,done] of [['key-objective',state.key],['chest-objective',state.won]]){$(id).classList.toggle('done',done);$(id).querySelector('.check').textContent=done?'✓':'○';}
 }
 function update(dt){if(state.dead||menu.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const old=state.label;if(!move(state,next,activeLevel)&&len)notice('The branch point is a puncture. Walk around it.',1);if(old!==state.label){state.crossings++;notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);discover();}
- if(r>5.5)state.hp=Math.max(0,state.hp-dt*(8+pull*8));if(state.hp<=0){state.dead=true;showMenu('dead');return;}if(!state.key&&state.label===key.label&&Math.hypot(state.x-key.x,state.y-key.y)<.4){state.key=true;notice(`Key found. Find the chest on Sheet ${activeLevel.labelName(chest.label)}.`,6);}if(!state.won&&state.label===chest.label&&Math.hypot(state.x-chest.x,state.y-chest.y)<.45){if(state.key){state.won=true;progress.completed.add(activeLevel.id);persist();notice('Chest opened! Your discoveries are recorded.',6);showMenu('complete');}else notice('The chest is locked. Find the key on Sheet I.',2);}}
+ if(r>5.5)state.hp=Math.max(0,state.hp-dt*(8+pull*8));if(state.hp<=0){state.dead=true;showMenu('dead');return;}if(!state.key&&state.label===key.label&&Math.hypot(state.x-key.x,state.y-key.y)<.4){state.key=true;notice(`Key found. Find the chest on Sheet ${activeLevel.labelName(chest.label)}.`,6);}if(!state.won&&state.label===chest.label&&Math.hypot(state.x-chest.x,state.y-chest.y)<.45){if(state.key){state.won=true;progress.completed.add(activeLevel.id);persist();notice('Chest opened! Your discoveries are recorded.',6);showMenu('complete');}else notice(`The chest is locked. Find the key on Sheet ${activeLevel.labelName(key.label)}.`,2);}}
 function frame(t){const dt=Math.min((t-last)/1000||0,.035);last=t;elapsed+=dt;update(dt);render();requestAnimationFrame(frame);}
 function turn(angle){heading=Math.atan2(Math.sin(heading+angle),Math.cos(heading+angle));}
 function setTerrain(value){
  scalar=value;$('scalar').value=String(scalar);$('scalar-name').textContent=['Re f','Im f','|f|'][scalar];
- if(scalar===2)notice(activeLevel.id==='root-sum'?'Magnitude distinguishes relative signs, but simultaneous sign reversal leaves it unchanged.':`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`,5);
+ const range=activeLevel.terrainRange??3;document.querySelector('.scale-labels span:first-child').textContent=`−${range}`;document.querySelector('.scale-labels span:last-child').textContent=`+${range}`;
+ if(scalar===2)notice(activeLevel.id==='log'?'Logarithm magnitudes can differ between sheets. Im f shows the 2π offsets directly.':activeLevel.id==='root-sum'?'Magnitude distinguishes relative signs, but simultaneous sign reversal leaves it unchanged.':`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`,5);
 }
 function cycleTerrain(){setTerrain((scalar+1)%3);}
 window.addEventListener('keydown',e=>{
