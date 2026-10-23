@@ -105,3 +105,7 @@ Repository: https://github.com/mmikhasenko/riemann-sheet-rpg
 Game: https://mmikhasenko.github.io/riemann-sheet-rpg/
 
 Pushes to `main` run the mathematical/gameplay tests, upload only `dist/`, and deploy through GitHub Actions to Pages. Assets use relative paths for project-site hosting. The linked Mikhasenko Group logo is in the top-right corner. Sites hosting remains configured separately; browser progress is stored independently on each origin.
+
+## Exploration defaults and references
+
+Every expedition and restart now begins in Player view with Im f terrain. Keys no longer disclose coordinates and are only drawn within one map unit, subject to the current view and transported sheet; collection still requires the player's own sheet and the existing 0.4 radius. The footer centers Mikhail Mikhasenko's name and a References button. Its accessible modal links to K-matrix day, the 2026 PDG resonance review, and the Scattering Theory encyclopedia entry. Opening it pauses movement and hazards; Escape or the close button restores focus to References. Browser checks confirmed distant/nearby key visibility, defaults, the footer, modal links, and pause behavior. All 59 existing tests pass.

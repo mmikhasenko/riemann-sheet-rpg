@@ -5,11 +5,11 @@ import {CM_GLSL} from './chew-mandelstam.js';
 import {levels, transport, advance, activeOnSheet} from './math.js';
 import {exploredInLevel, TOTAL_SHEETS, AWARDS, readProgress, saveProgress, visitSheet} from './progress.js';
 const $=id=>document.getElementById(id), canvas=$('terrain'), overlay=$('overlay'), ctx=overlay.getContext('2d');
-let state, mode='top', scalar=0, heading=Math.PI/2, target=null, last=0, noticeUntil=8, elapsed=0, width=0,height=0,scale=1;
+let state, mode='player', scalar=1, heading=Math.PI/2, target=null, last=0, noticeUntil=8, elapsed=0, width=0,height=0,scale=1;
 const keys=new Set();
 let levelIndex=0, activeLevel=levels[0], key, chest, awardTimeout;
 let storage; try { storage=window.localStorage; } catch { storage=null; }
-const progress=readProgress(storage), menu=$('expedition-menu');
+const progress=readProgress(storage), menu=$('expedition-menu'), references=$('references-dialog');
 function persist(){
   const saved=saveProgress(storage,progress);
   $('save-note').textContent=saved?'Saved in this browser · each level’s sheets count separately.':'Progress lasts for this session; browser storage is unavailable.';
@@ -49,13 +49,13 @@ function reset(index=levelIndex){
   document.querySelector('.formula').innerHTML=`f(s) = ${activeLevel.formula} <span>LEVEL ${activeLevel.number} · ${activeLevel.sheets}</span>`;
   document.querySelector('.edition b').textContent=`${activeLevel.number} / 10`;
   document.querySelector('.mission h2').textContent=activeLevel.title;
-  document.querySelector('#key-objective small').textContent=`Sheet ${activeLevel.labelName(key.label)} · s = 2 + 2i`;
+  document.querySelector('#key-objective small').textContent=`Sheet ${activeLevel.labelName(key.label)} · Search nearby to reveal the key`;
   document.querySelector('#chest-objective small').textContent=`Sheet ${activeLevel.labelName(chest.label)} · s = ${chest.x.toFixed(3)} ${chest.y<0?'−':'+'} ${Math.abs(chest.y).toFixed(3)}i${activeLevel.chest?' · pole':''}`;
   document.querySelector('.insight > span').textContent=`↳ FIELD NOTE ${activeLevel.number}`;
   document.querySelector('.insight p').textContent=activeLevel.note;
-  document.querySelector('footer span:last-child').textContent=`FLOAT64 LOGIC · WEBGL2 TERRAIN · ${activeLevel.cutLabel}`;
+  $('engine-note').textContent=`FLOAT64 LOGIC · WEBGL2 TERRAIN · ${activeLevel.cutLabel}`;
   notice(`Find the key on Sheet ${activeLevel.labelName(key.label)}, then the chest on Sheet ${activeLevel.labelName(chest.label)}.`,8);
-  setTerrain(activeLevel.defaultScalar??0);discover();overlay.focus({preventScroll:true});
+  setView('player');setTerrain(1);discover();overlay.focus({preventScroll:true});
 }
 function showLevelSelection(){
   $('level-selection').hidden=false;
@@ -124,7 +124,7 @@ if(gl){
 }else{$('view-help').textContent='WebGL2 is unavailable. Map markers and gameplay remain available.';}
 function screen(p){return {x:width/2+p.x*scale,y:height/2-p.y*scale};}
 function visible(p){if(mode==='top')return true;const d=Math.hypot(p.x-state.x,p.y-state.y);if(mode==='night')return d<2;return d<.45||(d<5&&((p.x-state.x)*Math.cos(heading)+(p.y-state.y)*Math.sin(heading))/d>.5);}
-function drawObject(p,type){const label=mode==='player'?transport(state,p,state.label,activeLevel.cuts):state.label;if(p.label!==label||!visible(p)||(type==='key'&&state.key))return;const q=screen(p);ctx.save();ctx.translate(q.x,q.y);ctx.strokeStyle='#f0ce8f';ctx.fillStyle='#17282a';ctx.lineWidth=2;ctx.shadowColor='#d9b76c';ctx.shadowBlur=14;if(type==='key'){ctx.beginPath();ctx.arc(-4,-5,6,0,Math.PI*2);ctx.moveTo(0,0);ctx.lineTo(10,10);ctx.lineTo(15,5);ctx.moveTo(7,7);ctx.lineTo(11,3);ctx.stroke();}else{ctx.fillRect(-12,-8,24,18);ctx.strokeRect(-12,-8,24,18);ctx.beginPath();ctx.moveTo(-12,-1);ctx.lineTo(12,-1);ctx.stroke();ctx.fillStyle='#f0ce8f';ctx.fillRect(-2,-3,4,7);}ctx.shadowBlur=0;ctx.font='9px "DM Sans", sans-serif';ctx.textAlign='center';ctx.fillStyle='#ebd6b2';ctx.fillText(type==='key'?'BRASS KEY':state.won?'CHEST OPENED':'HIDDEN CHEST',0,32);ctx.restore();}
+function drawObject(p,type){const label=mode==='player'?transport(state,p,state.label,activeLevel.cuts):state.label;if(p.label!==label||!visible(p)||(type==='key'&&(state.key||Math.hypot(p.x-state.x,p.y-state.y)>1)))return;const q=screen(p);ctx.save();ctx.translate(q.x,q.y);ctx.strokeStyle='#f0ce8f';ctx.fillStyle='#17282a';ctx.lineWidth=2;ctx.shadowColor='#d9b76c';ctx.shadowBlur=14;if(type==='key'){ctx.beginPath();ctx.arc(-4,-5,6,0,Math.PI*2);ctx.moveTo(0,0);ctx.lineTo(10,10);ctx.lineTo(15,5);ctx.moveTo(7,7);ctx.lineTo(11,3);ctx.stroke();}else{ctx.fillRect(-12,-8,24,18);ctx.strokeRect(-12,-8,24,18);ctx.beginPath();ctx.moveTo(-12,-1);ctx.lineTo(12,-1);ctx.stroke();ctx.fillStyle='#f0ce8f';ctx.fillRect(-2,-3,4,7);}ctx.shadowBlur=0;ctx.font='9px "DM Sans", sans-serif';ctx.textAlign='center';ctx.fillStyle='#ebd6b2';ctx.fillText(type==='key'?'BRASS KEY':state.won?'CHEST OPENED':'HIDDEN CHEST',0,32);ctx.restore();}
 function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);width=rect.width;height=rect.height;scale=height/12;if(overlay.width!==Math.round(width*dpr)||overlay.height!==Math.round(height*dpr)){overlay.width=canvas.width=Math.round(width*dpr);overlay.height=canvas.height=Math.round(height*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
  if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.player,state.x,state.y);gl.uniform1f(uniforms.signSheet,state.label);gl.uniform1f(uniforms.heading,heading);gl.uniform1i(uniforms.mode,['top','night','player'].indexOf(mode));gl.uniform1i(uniforms.scalar,scalar);gl.uniform1i(uniforms.functionKind,activeLevel.shader);gl.uniform1f(uniforms.terrainRange,activeLevel.terrainRange??3);gl.uniform2f(uniforms.cutBounds,activeLevel.cuts[0].a?.x??0,activeLevel.cuts[0].b?.x??0);gl.uniform1f(uniforms.cutPhi,activeLevel.phi??0);gl.uniform2f(uniforms.branchXs,activeLevel.branchPoints[0].x,activeLevel.branchPoints.at(-1).x);gl.drawArrays(gl.TRIANGLES,0,6);}
  const origin=screen({x:0,y:0});
@@ -153,7 +153,7 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
  $('sheet').textContent=`SHEET ${activeLevel.labelName(state.label)}`;$('sheet-type').textContent=state.label===activeLevel.initialLabel?'Principal branch':'Continued branch';$('sheet-dot').style.background=state.label===activeLevel.initialLabel?'#aee4c5':'#e7bd77';const f=activeLevel.evaluate(state,state.label),fmt=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(3);$('coordinates').textContent=`s = ${state.x.toFixed(2)} ${fmt(state.y)}i`;$('value').textContent=`f(s) = ${f.x.toFixed(3)} ${fmt(f.y)}i`;$('hp').style.width=state.hp+'%';$('hp-label').textContent=Math.ceil(state.hp)+'%';$('toast').style.opacity=elapsed<noticeUntil?1:0;
  for(const [id,done] of [['key-objective',state.key],['chest-objective',state.won]]){$(id).classList.toggle('done',done);$(id).querySelector('.check').textContent=done?'✓':'○';}
 }
-function update(dt){if(state.dead||menu.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const result=advance(state,next,activeLevel);if(!result&&len)notice('The branch point is a puncture. Walk around it.',1);if(result?.labels.length){state.crossings+=result.labels.length;for(const label of result.labels)discover(label);notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);}
+function update(dt){if(state.dead||menu.open||references.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const result=advance(state,next,activeLevel);if(!result&&len)notice('The branch point is a puncture. Walk around it.',1);if(result?.labels.length){state.crossings+=result.labels.length;for(const label of result.labels)discover(label);notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);}
  if(r>5.5)state.hp=Math.max(0,state.hp-dt*(8+pull*8));if(state.hp<=0){state.dead=true;showMenu('dead');return;}if(!state.key&&state.label===key.label&&Math.hypot(state.x-key.x,state.y-key.y)<.4){state.key=true;notice(`Key found. Find the chest on Sheet ${activeLevel.labelName(chest.label)}.`,6);}if(!state.won&&state.label===chest.label&&Math.hypot(state.x-chest.x,state.y-chest.y)<(activeLevel.chestRadius??.45)){if(state.key){state.won=true;progress.completed.add(activeLevel.id);persist();notice('Chest opened! Your discoveries are recorded.',6);showMenu('complete');}else notice(`The chest is locked. Find the key on Sheet ${activeLevel.labelName(key.label)}.`,2);}}
 function frame(t){const dt=Math.min((t-last)/1000||0,.035);last=t;elapsed+=dt;update(dt);render();requestAnimationFrame(frame);}
 function turn(angle){heading=Math.atan2(Math.sin(heading+angle),Math.cos(heading+angle));}
@@ -167,6 +167,7 @@ window.addEventListener('keydown',e=>{
  if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
  const focus=document.activeElement;
  if(focus.isContentEditable||['INPUT','SELECT','TEXTAREA'].includes(focus.tagName))return;
+ if(references.open)return;
  const k=e.key.length===1?e.key.toLowerCase():e.key;
  if(k==='r'){e.preventDefault();if(!e.repeat)reset();return;}
  if(menu.open)return;
@@ -180,7 +181,17 @@ window.addEventListener('blur',()=>{keys.clear();target=null;});
 
 function point(e){const r=overlay.getBoundingClientRect();target={x:(e.clientX-r.left-width/2)/scale,y:-(e.clientY-r.top-height/2)/scale};}
 overlay.addEventListener('pointerdown',e=>{overlay.focus();overlay.setPointerCapture(e.pointerId);point(e);});overlay.addEventListener('pointermove',e=>{if(overlay.hasPointerCapture(e.pointerId))point(e);});overlay.addEventListener('pointerup',()=>target=null);overlay.addEventListener('pointercancel',()=>target=null);
-$('reset').onclick=()=>reset();$('views').onclick=e=>{if(!e.target.dataset.view)return;mode=e.target.dataset.view;for(const b of $('views').children)b.classList.toggle('active',b.dataset.view===mode);$('view-help').textContent=mode==='top'?'The entire terrain changes when you cross the cut.':mode==='night'?'Only nearby terrain is visible. Cuts remain visible everywhere.':'Viewing rays continue onto other sheets. Only your character’s movement counts toward discoveries and sheet transitions; cuts are hidden.';document.querySelector('.legend').style.visibility=mode==='player'?'hidden':'visible';};$('scalar').onchange=e=>setTerrain(+e.target.value);
+function setView(value){
+ mode=value;for(const b of $('views').children)b.classList.toggle('active',b.dataset.view===mode);
+ $('view-help').textContent=mode==='top'?'The entire terrain changes when you cross the cut. Keys appear only within one unit.':mode==='night'?'Only nearby terrain is visible. Cuts remain visible everywhere. Keys appear only within one unit.':'Viewing rays continue onto other sheets. Only your character’s movement counts toward discoveries and sheet transitions; cuts are hidden. Keys appear only within one unit.';
+ document.querySelector('.legend').style.visibility=mode==='player'?'hidden':'visible';
+}
+$('reset').onclick=()=>reset();
+$('views').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
+$('open-references').onclick=()=>{keys.clear();target=null;references.showModal();};
+$('close-references').onclick=()=>references.close();
+references.addEventListener('close',()=>{keys.clear();target=null;$('open-references').focus({preventScroll:true});});
+$('scalar').onchange=e=>setTerrain(+e.target.value);
 $('terrain-cycle').onclick=()=>{cycleTerrain();overlay.focus({preventScroll:true});};
 $('turn-left').onclick=()=>{turn(Math.PI/4);overlay.focus({preventScroll:true});};
 $('turn-right').onclick=()=>{turn(-Math.PI/4);overlay.focus({preventScroll:true});};
