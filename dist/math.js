@@ -1,11 +1,8 @@
 import {createQuadraticCut} from './curved-cut.js';
 // All CPU arithmetic uses JavaScript float64 numbers.
-export function sqrt(z, label = 1) {
-  const r = Math.hypot(z.x, z.y);
-  const re = z.x >= 0 ? Math.sqrt((r + z.x) / 2) : Math.abs(z.y) / Math.sqrt(2 * (r - z.x));
-  const im = z.x >= 0 ? (re ? z.y / (2 * re) : 0) : (z.y < 0 ? -1 : 1) * Math.sqrt((r - z.x) / 2);
-  return { x: label * re, y: label * im };
-}
+import {sqrt} from './complex.js';
+export {sqrt} from './complex.js';
+import {chewMandelstam, CM_THRESHOLD} from './chew-mandelstam.js';
 export const level = {
   evaluate: sqrt,
   cuts: [{ a: { x: -1e6, y: 0 }, b: { x: 0, y: 0 }, map: label => -label }],
@@ -32,15 +29,20 @@ export function segmentDistance(a, b, p) {
   const t=d ? Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/d)) : 0;
   return Math.hypot(a.x+t*dx-p.x,a.y+t*dy-p.y);
 }
+export const activeOnSheet=(feature,label)=>!feature.active||feature.active(label);
 export function advance(state,next,activeLevel=level){
-  if(activeLevel.branchPoints.some(p=>segmentDistance(state,next,p)<p.radius))return null;
-  const labels=[];
+  // Check each portion on its transported sheet; rejected moves are atomic.
+  let label=state.label,previous={x:state.x,y:state.y};const labels=[];
+  const blocked=end=>activeLevel.branchPoints.some(p=>activeOnSheet(p,label)&&segmentDistance(previous,end,p)<p.radius);
   for(const {cut,hit} of cutIntersections(state,next,activeLevel.cuts)){
-    const nextLabel=cut.map(state.label,hit.direction);
-    if(nextLabel!==state.label)labels.push(nextLabel);
-    state.label=nextLabel;
+    const point={x:state.x+hit.t*(next.x-state.x),y:state.y+hit.t*(next.y-state.y)};
+    if(blocked(point))return null;
+    const nextLabel=cut.map(label,hit.direction);
+    if(nextLabel!==label)labels.push(nextLabel);
+    label=nextLabel;previous=point;
   }
-  state.x=next.x;state.y=next.y;return {labels};
+  if(blocked(next))return null;
+  state.label=label;state.x=next.x;state.y=next.y;return {labels};
 }
 export function move(state,next,activeLevel=level){return advance(state,next,activeLevel)!==null;}
 
@@ -146,4 +148,19 @@ levels.splice(3,0,{
  subtitle:'Level 3★ · φ = π/6 · Same surface and branch points, different cuts.',
  note:'This is the same two-sheeted surface as Maze. Rotating the argument inside the principal square root bends the cuts into hyperbolic arcs. Crossing an arc flips the label; circling either branch point flips the sheet.',
  cutLabel:'curved cut · σ ↦ −σ',labelName:label=>label===1?'I':'II',
+});
+
+levels.push({
+ id:'cm',number:'06',shader:6,initialLabel:0,chestLabel:1,labels:null,
+ title:'Threshold',formula:'ΣⅠ(s) + 2inρₚ(s)',worlds:'A hidden threshold.',sheets:'INFINITELY MANY SHEETS',
+ evaluate:chewMandelstam,defaultScalar:1,terrainRange:4,start:{x:-2,y:-2},
+ cuts:[
+   {a:{x:0,y:0},b:{x:CM_THRESHOLD,y:0},map:n=>n===0?0:-n,active:n=>n!==0,caption:'n ↦ −n'},
+   {a:{x:CM_THRESHOLD,y:0},b:{x:1e6,y:0},map:(n,d)=>n-d,caption:'↓ n+1 · ↑ n−1'},
+ ],
+ branchPoints:[{x:0,y:0,radius:.24,name:'0',active:n=>n!==0},{x:CM_THRESHOLD,y:0,radius:.24,name:'4m² = 1'}],
+ subtitle:'Chew–Mandelstam · m = ½ · The origin is regular on the physical sheet.',
+ note:'ΣⅠ = (ρₚ/π) Log((ρₚ−1)/(ρₚ+1)), ρₚ = √(1−1/s). Beyond threshold s = 1, crossing downward adds 1 and upward subtracts 1. Between 0 and 1, crossing sends n to −n. This cut and the obstacle at zero disappear on n = 0. Find the key on n = 0 and the chest on n = 1.',
+ cutLabel:'shift n ± 1 · reflect n ↦ −n',labelName:n=>n===0?'I (n = 0)':n===1?'II (n = 1)':`n = ${n}`,
+ magnitudeNote:'Chew–Mandelstam magnitudes differ between sheets. Im f reveals the physical threshold and continued branches.',
 });

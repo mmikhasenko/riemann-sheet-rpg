@@ -4,7 +4,7 @@ import {levels, transport, move} from '../dist/math.js';
 import {readProgress, visitSheet, exploredInLevel} from '../dist/progress.js';
 test('view-ray continuation across every level cut is pure and cannot award a visit',()=>{
  for(const level of levels){
-  const x=level.id==='rotated-root'?2:level.id==='two-point'?0:-2;
+  const x=['rotated-root','cm'].includes(level.id)?2:level.id==='two-point'?0:-2;
   const y=level.id==='rotated-root'?4:1;
   const player={x,y,label:level.initialLabel,crossings:0};
   const progress=readProgress(null);visitSheet(progress,level.id,player.label);

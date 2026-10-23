@@ -71,3 +71,13 @@ Mirage uses exp(−iφ) sqrt((s−a)(s−b) exp(2iφ)), with φ=π/6 and the sam
 Movement processes all intersections in order and records intermediate sheets, even when two crossings return to the original label. Viewing rays use the corresponding GLSL calculation and never count as discoveries. Mirage has its own two-sheet discoveries and completion state; existing saved level IDs remain compatible. Menu entries now use short names: Discovery, Vortex, Maze, Mirage, Crossroads, Lost.
 
 41 automated tests cover the existing levels plus curved-cut identities, continuity, endpoint banks, tangencies, double crossings, independent numerical continuation, monodromy and saved discoveries.
+
+## Level 6: Threshold — Chew–Mandelstam
+
+Threshold uses ΣI(s)+2inρp(s), with ρp=√(1−1/s), m=1/2, threshold 4m²=1, and n any integer. The right-hand cut shifts n downward by +1 and upward by −1; the interval (0,1) reflects n→−n. On n=0, the finite cut is invisible, causes no counted transition, and the origin is passable. Off that sheet, the origin becomes an obstacle. Movement validates each segment on its transported label before committing the move; Player-view branch markers likewise use the label transported along their viewing ray.
+
+The float64 evaluator and GLSL share the same conventions. Near zero, the physical value uses the convergent inverse-ρ² series, with limit −2/π, avoiding cancellation and the removable singularity. Away from zero, the log ratio is computed as −1/[s(ρ+1)²] for stability. GPU rendering caps the excluded off-sheet origin within 1e−5; gameplay remains float64. Integer discoveries now persist generically for any infinite-sheet level, retaining existing saves and award milestones.
+
+Mission: start at −2−2i on n=0, reach the key at 2+2i by going left of threshold, then cross the right-hand cut downward to open the chest at 2−2i on n=1. Browser QA completed this in Player view, then crossed (0,1) to reach n=−1: three sheets, two transitions. All 48 tests pass, including independent RK4 integration of f′=f/[2s(s−1)]−1/(πs) around varied closed loops, bank continuity, exact-axis values, series stability, dynamic obstacles and persistence.
+
+Next planned: Level 7, Breit–Wigner with ρ (two sheets); Level 7★, Breit–Wigner with CM (the Level 6 sheet structure). Multichannel resonance amplitudes follow these. They are not yet playable.

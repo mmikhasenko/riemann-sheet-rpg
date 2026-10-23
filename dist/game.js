@@ -1,5 +1,6 @@
 import {QUADRATIC_CUT_GLSL} from './curved-cut.js';
-import {levels, transport, advance} from './math.js';
+import {CM_GLSL} from './chew-mandelstam.js';
+import {levels, transport, advance, activeOnSheet} from './math.js';
 import {exploredInLevel, TOTAL_SHEETS, AWARDS, readProgress, saveProgress, visitSheet} from './progress.js';
 const $=id=>document.getElementById(id), canvas=$('terrain'), overlay=$('overlay'), ctx=overlay.getContext('2d');
 let state, mode='top', scalar=0, heading=Math.PI/2, target=null, last=0, noticeUntil=8, elapsed=0, width=0,height=0,scale=1;
@@ -37,7 +38,7 @@ function reset(index=levelIndex){
   if(menu.open)menu.close();
   levelIndex=index;activeLevel=levels[index];
   key={x:2,y:2,label:activeLevel.initialLabel};chest={x:2,y:-2,label:activeLevel.chestLabel};
-  state={x:3,y:-2,label:activeLevel.initialLabel,hp:100,key:false,won:false,dead:false,crossings:0,visited:new Set()};
+  state={...(activeLevel.start??{x:3,y:-2}),label:activeLevel.initialLabel,hp:100,key:false,won:false,dead:false,crossings:0,visited:new Set()};
   target=null;keys.clear();heading=Math.PI/2;
   clearTimeout(awardTimeout);$('award-toast').hidden=true;
   document.querySelector('.intro h1').innerHTML=`One plane. <em>${activeLevel.worlds}</em>`;
@@ -91,16 +92,18 @@ if(gl){
  const frag=`#version 300 es
  precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs;uniform float signSheet,heading,terrainRange,cutPhi;
  ${QUADRATIC_CUT_GLSL}uniform int mode,scalar,functionKind;
- vec2 principalRoot(vec2 z){float r=length(z);return vec2(sqrt(max(0.,(r+z.x)*.5)),(z.y<0.?-1.:1.)*sqrt(max(0.,(r-z.x)*.5)));}
+ vec2 principalRoot(vec2 z){float r=length(z);float re=z.x>=0.?sqrt((r+z.x)*.5):abs(z.y)/sqrt(2.*(r-z.x));float im=z.x>=0.?(re>0.?z.y/(2.*re):0.):(z.y<0.?-1.:1.)*sqrt((r-z.x)*.5);return vec2(re,im);}
+ ${CM_GLSL}
  void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;
  if(mode==2 && functionKind==5){if(mod(curvedCrossings(player,s,branchXs,cutPhi),2.)>0.5)label=-label;}
- if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
+ if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==6){if(x>=1.)label+=s.y<player.y?1.:-1.;else if(x>=0.)label=-label;}else if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
  float r=length(s);vec2 root=vec2(sqrt(max(0.,(r+s.x)*.5)),(s.y<0.?-1.:1.)*sqrt(max(0.,(r-s.x)*.5)))*label;
  if(functionKind==1){float angle=(atan(s.y,s.x)+6.28318530718*label)/3.;root=pow(r,1./3.)*vec2(cos(angle),sin(angle));}
  if(functionKind==2){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));root=label*vec2(u.x*w.x-u.y*w.y,u.x*w.y+u.y*w.x);}
  if(functionKind==3){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(branchXs.y-s.x,s.y))*vec2(1.,-1.);int bits=int(label);root=((bits&1)==0?1.:-1.)*u+2.*((bits&2)==0?1.:-1.)*w;}
  if(functionKind==4)root=vec2(log(max(r,1e-20)),atan(s.y,s.x)+6.28318530718*label);
  if(functionKind==5){vec2 w=principalRoot(curvedArgument(s,branchXs,cutPhi));root=label*vec2(cos(cutPhi)*w.x+sin(cutPhi)*w.y,cos(cutPhi)*w.y-sin(cutPhi)*w.x);}
+ if(functionKind==6)root=cmValue(s,label);
  float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(.5+v/(2.*terrainRange),0.,1.);
  vec3 low=vec3(.055,.17,.24),mid=vec3(.19,.39,.39),high=vec3(.69,.72,.44);vec3 c=t<.5?mix(low,mid,t*2.):mix(mid,high,(t-.5)*2.);
  float contour=abs(fract(v*5.+.5)-.5);float line=1.-smoothstep(.015,.015+fwidth(v)*7.,contour);c*=1.-.22*line;
@@ -121,6 +124,7 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
  const origin=screen({x:0,y:0});
  ctx.strokeStyle='#d6a56888';ctx.lineWidth=1;ctx.setLineDash([4,7]);
  if(mode!=='player')for(const cut of activeLevel.cuts){
+   if(!activeOnSheet(cut,state.label))continue;
    if(cut.paths){
      for(const path of cut.paths(Math.hypot(width/scale,height/scale))){ctx.beginPath();path.forEach((z,i)=>{const p=screen(z);if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);});ctx.stroke();}
      continue;
@@ -131,7 +135,7 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
    ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+Math.min(width,end.x))/2-24),start.y-12);
  }
  ctx.setLineDash([]);ctx.strokeStyle='#bc83824a';ctx.beginPath();ctx.arc(origin.x,origin.y,5.5*scale,0,Math.PI*2);ctx.stroke();
- for(const branch of activeLevel.branchPoints)if(visible(branch)){
+ for(const branch of activeLevel.branchPoints)if(visible(branch)&&activeOnSheet(branch,mode==='player'?transport(state,branch,state.label,activeLevel.cuts):state.label)){
    const p=screen(branch);ctx.fillStyle='#0b171d';ctx.strokeStyle='#d4b078';ctx.lineWidth=1.5;
    ctx.beginPath();ctx.arc(p.x,p.y,branch.radius*scale,0,Math.PI*2);ctx.fill();ctx.stroke();
    ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.stroke();ctx.font='9px monospace';ctx.fillStyle='#dac494';
@@ -150,7 +154,7 @@ function turn(angle){heading=Math.atan2(Math.sin(heading+angle),Math.cos(heading
 function setTerrain(value){
  scalar=value;$('scalar').value=String(scalar);$('scalar-name').textContent=['Re f','Im f','|f|'][scalar];
  const range=activeLevel.terrainRange??3;document.querySelector('.scale-labels span:first-child').textContent=`−${range}`;document.querySelector('.scale-labels span:last-child').textContent=`+${range}`;
- if(scalar===2)notice(activeLevel.id==='log'?'Logarithm magnitudes can differ between sheets. Im f shows the 2π offsets directly.':activeLevel.id==='root-sum'?'Magnitude distinguishes relative signs, but simultaneous sign reversal leaves it unchanged.':`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`,5);
+ if(scalar===2)notice(activeLevel.magnitudeNote??(activeLevel.id==='log'?'Logarithm magnitudes can differ between sheets. Im f shows the 2π offsets directly.':activeLevel.id==='root-sum'?'Magnitude distinguishes relative signs, but simultaneous sign reversal leaves it unchanged.':`|${activeLevel.formula}| is identical on all sheets. Try Re f to see the difference.`),5);
 }
 function cycleTerrain(){setTerrain((scalar+1)%3);}
 window.addEventListener('keydown',e=>{

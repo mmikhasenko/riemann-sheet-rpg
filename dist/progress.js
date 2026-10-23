@@ -13,8 +13,10 @@ const validSheets = new Set(levels.flatMap(level => (level.labels ?? []).map(lab
 export const TOTAL_SHEETS = levels.some(level=>level.labels===null) ? Infinity : validSheets.size;
 function validSheet(id){
   if(validSheets.has(id))return true;
-  if(typeof id!=='string'||!/^log:-?\d+$/.test(id))return false;
-  const n=Number(id.slice(4));return Number.isSafeInteger(n)&&`log:${n}`===id;
+  if(typeof id!=='string')return false;
+  const colon=id.indexOf(':'),levelId=id.slice(0,colon),label=id.slice(colon+1);
+  if(!levels.some(level=>level.id===levelId&&level.labels===null)||!/^-?\d+$/.test(label))return false;
+  const n=Number(label);return Number.isSafeInteger(n)&&`${levelId}:${n}`===id;
 }
 const validLevels = new Set(levels.map(level => level.id));
 export function readProgress(storage) {
