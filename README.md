@@ -2,7 +2,7 @@
 
 A browser exploration game on the complex plane: cross branch cuts, discover Riemann sheets, and find keys and treasure on other sheets. Includes square roots, logarithms, Chew–Mandelstam functions, and resonance amplitudes.
 
-**Version:** v0.1.0-pre · **[Play](https://mmikhasenko.github.io/riemann-sheet-rpg/)**
+**[Play](https://mmikhasenko.github.io/riemann-sheet-rpg/)** · [Release notes](NEWS.md) · [MIT license](LICENSE)
 
 ## How it was made
 
