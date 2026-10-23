@@ -1,1 +1,10 @@
-{"name":"analytic-continuation-rpg","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","start":"python3 -m http.server 4173 --directory dist"}}
+{
+  "name": "analytic-continuation-rpg",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python3 -m http.server 4173 --directory dist"
+  },
+  "version": "0.1.0-pre"
+}
