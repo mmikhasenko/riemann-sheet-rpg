@@ -1,3 +1,4 @@
+import {BW_CM_GLSL} from './breit-wigner-cm.js';
 import {BW_GLSL} from './breit-wigner.js';
 import {QUADRATIC_CUT_GLSL} from './curved-cut.js';
 import {CM_GLSL} from './chew-mandelstam.js';
@@ -96,9 +97,10 @@ if(gl){
  vec2 principalRoot(vec2 z){float r=length(z);float re=z.x>=0.?sqrt((r+z.x)*.5):abs(z.y)/sqrt(2.*(r-z.x));float im=z.x>=0.?(re>0.?z.y/(2.*re):0.):(z.y<0.?-1.:1.)*sqrt((r-z.x)*.5);return vec2(re,im);}
  ${CM_GLSL}
  ${BW_GLSL}
+ ${BW_CM_GLSL}
  void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;
  if(mode==2 && functionKind==5){if(mod(curvedCrossings(player,s,branchXs,cutPhi),2.)>0.5)label=-label;}
- if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==7){if(x<0.||x>=1.)label=-label;}else if(functionKind==6){if(x>=1.)label+=s.y<player.y?1.:-1.;else if(x>=0.)label=-label;}else if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
+ if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==7){if(x<0.||x>=1.)label=-label;}else if(functionKind==6||functionKind==8){if(x>=1.)label+=s.y<player.y?1.:-1.;else if(x>=0.)label=-label;}else if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
  float r=length(s);vec2 root=vec2(sqrt(max(0.,(r+s.x)*.5)),(s.y<0.?-1.:1.)*sqrt(max(0.,(r-s.x)*.5)))*label;
  if(functionKind==1){float angle=(atan(s.y,s.x)+6.28318530718*label)/3.;root=pow(r,1./3.)*vec2(cos(angle),sin(angle));}
  if(functionKind==2){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));root=label*vec2(u.x*w.x-u.y*w.y,u.x*w.y+u.y*w.x);}
@@ -107,6 +109,7 @@ if(gl){
  if(functionKind==5){vec2 w=principalRoot(curvedArgument(s,branchXs,cutPhi));root=label*vec2(cos(cutPhi)*w.x+sin(cutPhi)*w.y,cos(cutPhi)*w.y-sin(cutPhi)*w.x);}
  if(functionKind==6)root=cmValue(s,label);
  if(functionKind==7)root=bwValue(s,label);
+ if(functionKind==8)root=bwCMValue(s,label);
  float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(scalar==2?v/terrainRange:.5+v/(2.*terrainRange),0.,1.);
  vec3 low=vec3(.055,.17,.24),mid=vec3(.19,.39,.39),high=vec3(.69,.72,.44);vec3 c=t<.5?mix(low,mid,t*2.):mix(mid,high,(t-.5)*2.);
  float contour=abs(fract(v*5.+.5)-.5);float line=1.-smoothstep(.015,.015+fwidth(v)*7.,contour);c*=1.-.22*line;

@@ -1,3 +1,4 @@
+import {breitWignerCM, BW_CM_POLE} from './breit-wigner-cm.js';
 import {breitWigner, BW_POLE} from './breit-wigner.js';
 import {createQuadraticCut} from './curved-cut.js';
 // All CPU arithmetic uses JavaScript float64 numbers.
@@ -177,4 +178,15 @@ levels.push({
  note:'The physical phase space is ρⅠ(s) = i√(1−s)/√s, positive just above threshold. Each exterior cut flips its sign; the interval (0,1) is continuous. Circle either branch point to change sheets, or both to return. Collect the key on Sheet I, then approach the resonance pole on Sheet II to open its treasure.',
  cutLabel:'σ ↦ −σ · resonance pole on II',labelName:n=>n===1?'I':'II',
  magnitudeNote:'The amplitude magnitude differs between sheets. Its peak reveals the resonance pole on Sheet II.',
+});
+
+levels.push({
+ ...levels.find(level=>level.id==='cm'),
+ id:'breit-wigner-cm',number:'07★',shader:8,title:'Echo',
+ formula:'1 / (M² − s − g²Σ̃ₙ(s))',worlds:'A resonance, continued.',
+ evaluate:breitWignerCM,defaultScalar:2,terrainRange:4,start:{x:.5,y:-2},chest:BW_CM_POLE,chestRadius:.25,
+ subtitle:'Breit–Wigner with CM · M² = 2.5 · g² = 0.8 · 4m² = 1 · Subtracted at threshold.',
+ note:'Σ̃ₙ(s) = Σₙ(s) − Re ΣⅠ(1). The subtraction is zero in this CM convention. Above threshold Im Σ̃Ⅰ = ρ, as in Level 7; the real part shifts the pole. The cuts and integer sheets are those of Threshold: shift n on the right cut, reflect n on (0,1). Zero is regular on n = 0. Collect the key there, then find the pole treasure on n = 1.',
+ cutLabel:'CM sheet maps · resonance pole on n = 1',
+ magnitudeNote:'The magnitude reveals the CM resonance pole. Its position differs from Level 7 because the real part of CM remains away from threshold.',
 });
