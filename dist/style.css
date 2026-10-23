@@ -7,3 +7,5 @@
 #total-discovery-count{margin-top:10px}.count-explanation{margin-top:10px;color:#bbcec8!important}#run-stats{gap:16px}#run-stats span{line-height:1.5}
 
 .world-bottom{height:auto;min-height:58px;flex-wrap:wrap;gap:14px}.shortcut-controls{display:flex;gap:8px;flex-wrap:wrap}.shortcut-controls button{background:#192c30;border:1px solid #3a4c50;border-radius:4px;padding:7px 9px;font-size:11px;color:var(--mint)}.shortcut-controls kbd,.world-actions kbd{border:0;padding:0 4px 0 0}.shortcut-controls button:hover{border-color:var(--mint)}@media(max-width:720px){.world-bottom>span{max-width:100%}.shortcut-controls{order:3;width:100%}.shortcut-controls button{flex:1}}
+
+.level-card{flex-wrap:nowrap!important}.level-card>span:first-child{flex:1}.formula{font-size:clamp(17px,2.4vw,32px)}

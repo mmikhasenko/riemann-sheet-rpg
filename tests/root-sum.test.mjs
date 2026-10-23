@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {levels,rootSum,sqrt,transport,move,TWO_POINT_A as a,TWO_POINT_B as b} from '../dist/math.js';
 import {readProgress,visitSheet,exploredInLevel,TOTAL_SHEETS,saveProgress} from '../dist/progress.js';
-const level=levels[3],distance=(u,v)=>Math.hypot(u.x-v.x,u.y-v.y);
+const level=levels.find(l=>l.id==='root-sum'),distance=(u,v)=>Math.hypot(u.x-v.x,u.y-v.y);
 test('four branches obey the algebraic equation and have four distinct generic values',()=>{
  // (f²-(s-a)-4(b-s))² = 16(s-a)(b-s)
  const mul=(u,v)=>({x:u.x*v.x-u.y*v.y,y:u.x*v.y+u.y*v.x});

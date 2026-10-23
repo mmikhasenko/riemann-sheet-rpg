@@ -1,3 +1,4 @@
+import {createQuadraticCut} from './curved-cut.js';
 // All CPU arithmetic uses JavaScript float64 numbers.
 export function sqrt(z, label = 1) {
   const r = Math.hypot(z.x, z.y);
@@ -16,9 +17,14 @@ export function crossing(a, b, cut) {
   const t = -a.y / (b.y - a.y), x = a.x + t * (b.x - a.x);
   return x >= cut.a.x && x < cut.b.x ? { t, direction: b.y < a.y ? -1 : 1 } : null;
 }
-export function transport(a, b, label, cuts = level.cuts) {
-  const hits = cuts.map(cut => ({ cut, hit: crossing(a, b, cut) })).filter(v => v.hit).sort((a,b) => a.hit.t-b.hit.t);
-  for (const {cut,hit} of hits) label = cut.map(label, hit.direction);
+export function cutIntersections(a,b,cuts=level.cuts){
+  return cuts.flatMap(cut=>{
+    const hits=cut.intersections?cut.intersections(a,b):[crossing(a,b,cut)].filter(Boolean);
+    return hits.map(hit=>({cut,hit}));
+  }).sort((a,b)=>a.hit.t-b.hit.t);
+}
+export function transport(a,b,label,cuts=level.cuts){
+  for(const {cut,hit} of cutIntersections(a,b,cuts))label=cut.map(label,hit.direction);
   return label;
 }
 export function segmentDistance(a, b, p) {
@@ -26,10 +32,17 @@ export function segmentDistance(a, b, p) {
   const t=d ? Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/d)) : 0;
   return Math.hypot(a.x+t*dx-p.x,a.y+t*dy-p.y);
 }
-export function move(state, next, activeLevel = level) {
-  if (activeLevel.branchPoints.some(p => segmentDistance(state,next,p) < p.radius)) return false;
-  state.label=transport(state,next,state.label,activeLevel.cuts);state.x=next.x;state.y=next.y;return true;
+export function advance(state,next,activeLevel=level){
+  if(activeLevel.branchPoints.some(p=>segmentDistance(state,next,p)<p.radius))return null;
+  const labels=[];
+  for(const {cut,hit} of cutIntersections(state,next,activeLevel.cuts)){
+    const nextLabel=cut.map(state.label,hit.direction);
+    if(nextLabel!==state.label)labels.push(nextLabel);
+    state.label=nextLabel;
+  }
+  state.x=next.x;state.y=next.y;return {labels};
 }
+export function move(state,next,activeLevel=level){return advance(state,next,activeLevel)!==null;}
 
 export function cubeRoot(z, label = 0) {
   const radius = Math.cbrt(Math.hypot(z.x, z.y));
@@ -56,10 +69,16 @@ export function rootSum(z, label = 0) {
 export function logarithm(z, n = 0) {
   return { x: Math.log(Math.hypot(z.x,z.y)), y: Math.atan2(z.y===0?0:z.y,z.x)+2*Math.PI*n };
 }
+export const ROTATION_PHI=Math.PI/6;
+export const rotatedCut=createQuadraticCut(TWO_POINT_A,TWO_POINT_B,ROTATION_PHI);
+export function rotatedRoot(z,label=1){
+  const w=sqrt(rotatedCut.value(z)),c=Math.cos(ROTATION_PHI),s=Math.sin(ROTATION_PHI);
+  return {x:label*(c*w.x+s*w.y),y:label*(c*w.y-s*w.x)};
+}
 export const levels = [
   {
     ...level, labels: [1,-1], menuNote: 'two turns to return', id: 'sqrt', number: '01', shader: 0, initialLabel: 1, chestLabel: -1,
-    title: 'The other side', formula: '√s', worlds: 'Two worlds.', sheets: 'TWO SHEETS',
+    title: 'Discovery', formula: '√s', worlds: 'Two worlds.', sheets: 'TWO SHEETS',
     subtitle: 'Follow the square root beyond its principal branch.',
     note: 'A full turn around zero changes the sign. Two turns bring you home.',
     cutLabel: 'σ ↦ −σ', labelName: label => label === 1 ? 'I' : 'II',
@@ -69,7 +88,7 @@ export const levels = [
     evaluate: cubeRoot,
     cuts: [{ a: { x: -1e6, y: 0 }, b: { x: 0, y: 0 }, map: (label, direction) => (label - direction + 3) % 3 }],
     branchPoints: [{ x: 0, y: 0, radius: .24 }],
-    title: 'The third world', formula: '∛s', worlds: 'Three worlds.', sheets: 'THREE SHEETS',
+    title: 'Vortex', formula: '∛s', worlds: 'Three worlds.', sheets: 'THREE SHEETS',
     subtitle: 'Discover the three branches of the cube root.',
     note: 'Downward crossings add 1 modulo 3; upward crossings subtract 1. Three turns bring you home.',
     cutLabel: 'k ↦ k ± 1 (mod 3)', labelName: label => ['I (k = 0)', 'II (k = 1)', 'III (k = 2)'][label],
@@ -83,7 +102,7 @@ export const levels = [
       { x: TWO_POINT_A, y: 0, radius: .24, name: 'a = −1.5' },
       { x: TWO_POINT_B, y: 0, radius: .24, name: 'b = 1.5' },
     ],
-    title: 'Between two points', formula: '√((s−a)(s−b))', worlds: 'Two branch points.', sheets: 'TWO SHEETS',
+    title: 'Maze', formula: '√((s−a)(s−b))', worlds: 'Two branch points.', sheets: 'TWO SHEETS',
     subtitle: 'a = −1.5 · b = 1.5 · A finite cut connects two branch points.',
     note: 'Circle either branch point to change sheets. Circle both and return to the same sheet. Cross the segment between a = −1.5 and b = 1.5 to find the chest.',
     cutLabel: 'σ ↦ −σ', labelName: label => label === 1 ? 'I' : 'II',
@@ -101,7 +120,7 @@ export const levels = [
       {x:TWO_POINT_A,y:0,radius:.24,name:'a = −1.5'},
       {x:TWO_POINT_B,y:0,radius:.24,name:'b = 1.5'},
     ],
-    title:'Independent roots', formula:'√(s−a) + 2√(b−s)', worlds:'Four sheets.', sheets:'FOUR SHEETS',
+    title:'Crossroads', formula:'√(s−a) + 2√(b−s)', worlds:'Four sheets.', sheets:'FOUR SHEETS',
     subtitle:'a = −1.5 · b = 1.5 · Each root carries its own sign.',
     note:'Sheets are (σa, σb). Circle a to flip σa; circle b to flip σb. The left cut flips σa, the right cut flips σb; between a and b there is no cut. Find the chest on (−,−).',
     cutLabel:'independent sign flips', labelName:label=>['I (+,+)','II (−,+)','III (+,−)','IV (−,−)'][label],
@@ -112,9 +131,19 @@ export const levels = [
     evaluate:logarithm, defaultScalar:1, terrainRange:20,
     cuts:[{a:{x:-1e6,y:0},b:{x:0,y:0},map:(n,direction)=>n-direction}],
     branchPoints:[{x:0,y:0,radius:.24}],
-    title:'The infinite staircase',formula:'log s',worlds:'Endless sheets.',sheets:'INFINITELY MANY SHEETS',
+    title:'Lost',formula:'log s',worlds:'Endless sheets.',sheets:'INFINITELY MANY SHEETS',
     subtitle:'Every turn adds a new branch. There is no final sheet.',
     note:'log(s;n) = Log(s) + 2πin. Cross the negative real axis downward to add 1, upward to subtract 1. Find the key on n = 0 and the chest on n = 2; keep exploring in either direction.',
     cutLabel:'↓ n+1 · ↑ n−1',labelName:n=>`n = ${n}`,
   },
 ];
+
+levels.splice(3,0,{
+ id:'rotated-root',number:'03★',shader:5,initialLabel:1,chestLabel:-1,labels:[1,-1],
+ title:'Mirage',formula:'e^(−iφ) √((s−a)(s−b)e^(2iφ))',worlds:'Familiar, yet different.',sheets:'TWO SHEETS',
+ menuNote:'Level 3 variant · curved cuts',phi:ROTATION_PHI,evaluate:rotatedRoot,cuts:[rotatedCut],
+ branchPoints:[{x:TWO_POINT_A,y:0,radius:.24,name:'a = −1.5'},{x:TWO_POINT_B,y:0,radius:.24,name:'b = 1.5'}],
+ subtitle:'Level 3★ · φ = π/6 · Same surface and branch points, different cuts.',
+ note:'This is the same two-sheeted surface as Maze. Rotating the argument inside the principal square root bends the cuts into hyperbolic arcs. Crossing an arc flips the label; circling either branch point flips the sheet.',
+ cutLabel:'curved cut · σ ↦ −σ',labelName:label=>label===1?'I':'II',
+});

@@ -4,14 +4,15 @@ import {levels, transport, move} from '../dist/math.js';
 import {readProgress, visitSheet, exploredInLevel} from '../dist/progress.js';
 test('view-ray continuation across every level cut is pure and cannot award a visit',()=>{
  for(const level of levels){
-  const x=level.id==='two-point'?0:-2;
-  const player={x,y:1,label:level.initialLabel,crossings:0};
+  const x=level.id==='rotated-root'?2:level.id==='two-point'?0:-2;
+  const y=level.id==='rotated-root'?4:1;
+  const player={x,y,label:level.initialLabel,crossings:0};
   const progress=readProgress(null);visitSheet(progress,level.id,player.label);
   const before=JSON.stringify(player);
   for(let i=0;i<1000;i++){
-   const label=transport(player,{x,y:-1},player.label,level.cuts);
+   const label=transport(player,{x,y:-y},player.label,level.cuts);
    assert.notEqual(label,player.label);
-   level.evaluate({x,y:-1},label);
+   level.evaluate({x,y:-y},label);
   }
   assert.equal(JSON.stringify(player),before);
   assert.equal(progress.visited.size,1);assert.equal(exploredInLevel(progress,level),1);

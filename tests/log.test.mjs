@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {levels,logarithm,transport,move,rootSum} from '../dist/math.js';
 import {readProgress,saveProgress,visitSheet,exploredInLevel,TOTAL_SHEETS} from '../dist/progress.js';
-const logLevel=levels[4],distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const logLevel=levels.find(l=>l.id==='log'),distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 test('log banks match for large positive and negative sheet labels',()=>{
  for(const n of [-10000,-10,-1,0,1,10,10000])for(const x of [-4,-1,-.3]){
  const u={x,y:1e-10},d={x,y:-1e-10};
@@ -27,7 +27,7 @@ test('log mission reaches n=2 after two downward cut crossings',()=>{
  assert.equal(s.label,2);
 });
 test('Level 4 upper-bank convention matches a downward approach on both exterior cuts and the continuous middle interval',()=>{
- const l=levels[3];
+ const l=levels.find(l=>l.id==='root-sum');
  for(const x of [-3,0,3])for(const k of l.labels){
  const u={x,y:1e-12},axis={x,y:0},d={x,y:-1e-12};
  assert.equal(transport(u,axis,k,l.cuts),k);

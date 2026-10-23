@@ -63,3 +63,11 @@ Level 4 is σa sqrt(s−a)+2σb sqrt(b−s), a=−1.5 and b=1.5, with four sheet
 Level 5 is Log(s)+2πin, with downward negative-axis crossings incrementing n and upward crossings decrementing n. The key is on n=0 and the chest on n=2. Im f is the default terrain, with colour scale ±20. Only visited integer sheets are stored; counters show ∞. CPU labels are JavaScript safe integers; rendering uses float32. Awards extend to 15 and 25 discoveries.
 
 33 tests cover root identities, cuts, independent continuation, logarithm winding, persistence and counting. Both missions were completed in browser Player view during development.
+
+## Level 3★: Mirage — curved cuts
+
+Mirage uses exp(−iφ) sqrt((s−a)(s−b) exp(2iφ)), with φ=π/6 and the same branch points and two-sheeted surface as Maze. Its principal-branch cuts are the negative-real preimage of the rotated polynomial: Im(exp(2iφ)(s−a)(s−b))=0 with Re<0. These form two hyperbolic arcs. `curved-cut.js` supplies exact quadratic segment intersections; sampled curves are used only for drawing. New cut types can implement `intersections(p,q)` and `paths(extent)`; shader support must also be supplied for Player view.
+
+Movement processes all intersections in order and records intermediate sheets, even when two crossings return to the original label. Viewing rays use the corresponding GLSL calculation and never count as discoveries. Mirage has its own two-sheet discoveries and completion state; existing saved level IDs remain compatible. Menu entries now use short names: Discovery, Vortex, Maze, Mirage, Crossroads, Lost.
+
+41 automated tests cover the existing levels plus curved-cut identities, continuity, endpoint banks, tangencies, double crossings, independent numerical continuation, monodromy and saved discoveries.
