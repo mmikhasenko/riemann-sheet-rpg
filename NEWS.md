@@ -4,6 +4,7 @@
 
 - Added Separation immediately after Threshold: unequal-mass CM with separate principal square roots, a hidden pseudothreshold, and a simple origin pole on nonphysical sheets.
 - Added Confluence: two unequal-mass CM channels with independent integer sheet indices, a second-threshold cusp on the rising physical line shape, and a resonance pole above both thresholds.
+- Confluence places the key on (3,4) and the chest on (−2,1), requiring independent exploration of both channel indices.
 - Added stable evaluation at the physical origin, and tests against an independent dispersion integral and differential-equation continuation.
 - Level starts now honor their configured terrain choice; resonance levels open in magnitude view.
 

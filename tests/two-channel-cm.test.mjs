@@ -37,7 +37,7 @@ test('pole is above the second threshold on (1,1), not on the physical sheet',()
  assert.ok(TWO_CHANNEL_POLE.x>CHANNELS[1].a&&TWO_CHANNEL_POLE.y<0);
  close(twoChannelDenominator(TWO_CHANNEL_POLE,'1,1'),{x:0,y:0},1e-12);
  assert.ok(Math.hypot(...Object.values(twoChannelDenominator(TWO_CHANNEL_POLE,'0,0')))>.5);
- assert.equal(level.chest,TWO_CHANNEL_POLE);assert.equal(level.chestLabel,'1,1');
+
  for(const x of [1.2,2,2.5,4]){
   const width=CHANNELS.reduce((sum,c,i)=>sum+(x>c.a?TWO_CHANNEL_COUPLINGS[i]*c.rho({x,y:0}).x:0),0);
   assert.ok(Math.abs(twoChannelDenominator({x,y:0}).y+width)<1e-12);
@@ -58,4 +58,10 @@ test('independent sheet pairs persist canonically without colliding with single-
  visitSheet(progress,'cm-unequal',1);assert.equal(progress.visited.size,6);
  let saved;const storage={setItem:(k,v)=>saved=v,getItem:()=>saved};saveProgress(storage,progress);
  assert.deepEqual(readProgress(storage).visited,progress.visited);
+});
+
+test('Confluence objectives require distant sheet pairs; the chest is not labeled as a pole',()=>{
+ assert.equal(level.keyLabel,'3,4');assert.equal(level.chestLabel,'-2,1');
+ assert.equal(level.chestIsPole,false);
+ assert.ok(Math.hypot(...Object.values(twoChannelDenominator(level.chest,level.chestLabel)))>.1);
 });

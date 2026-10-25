@@ -37,7 +37,8 @@ Confluence (08) uses channel masses `(0.75, 0.25)` and `(1.125, 0.375)`,
 index; the resonance pole is approximately `3.084654473 - 0.724823347i` on
 `(1,1)`. The physical line shape has a cusp at the second threshold `2.25`,
 before the larger resonance peak. The CM origin poles generally become a
-regular amplitude zero; they are not punctures in Confluence.
+regular amplitude zero; they are not punctures in Confluence. The key is on
+`(3,4)` and the chest on `(-2,1)`; the chest does not mark a pole on that sheet.
 
 Tests compare the unequal-mass formula with an independent subtracted
 dispersion integral and differential-equation continuation, check all cut

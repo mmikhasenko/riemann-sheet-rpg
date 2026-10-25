@@ -213,7 +213,7 @@ levels.push({
 
 levels.push({
  id:'two-channel-cm',number:'08',shader:10,title:'Confluence',
- initialLabel:'0,0',chestLabel:'1,1',labels:null,validLabel:validPair,
+ initialLabel:'0,0',chestLabel:'-2,1',labels:null,validLabel:validPair,
  formula:'1 / (M² − s − g₁²Σ₁ − g₂²Σ₂)',worlds:'Two channels meet.',sheets:'INFINITELY MANY SHEET PAIRS',
  evaluate:twoChannelBW,defaultScalar:2,terrainRange:3,start:{x:-2,y:-2},chest:TWO_CHANNEL_POLE,chestRadius:.25,
  cuts:CHANNELS.flatMap((c,i)=>[
@@ -225,9 +225,9 @@ levels.push({
   {x:c.a,y:0,radius:.15,name:`a${i+1} = ${c.a}`,labelOffset:i===0?32:0},
  ]),
  subtitle:'Two unequal-mass channels · thresholds 1 and 2.25 · M² = 2.9 · g₁² = 0.35 · g₂² = 0.65.',
- note:'Each channel has its own CM index (n₁,n₂). Crossing above both thresholds shifts both indices; between thresholds only channel 1 shifts, while channel 2 can reflect. Each pseudothreshold is hidden when its own index is zero. The physical |f| has a cusp at 2.25 before the resonance peak. The pole treasure is on (1,1), reached by crossing downward above both thresholds. The CM poles at zero generally become an amplitude zero, not a pole.',
+ note:'Each channel has its own CM index (n₁,n₂). Crossing above both thresholds shifts both indices; between thresholds only channel 1 shifts, while channel 2 can reflect. Each pseudothreshold is hidden when its own index is zero. The physical |f| has a cusp at 2.25 before the resonance peak. Find the key on (3,4), then the chest on (−2,1). Combine threshold crossings and pseudothreshold loops to reach both sheet pairs. The CM poles at zero generally become an amplitude zero, not a pole.',
  cutLabel:'independent CM indices (n₁,n₂)',labelName:label=>`(${sheetPair(label).join(', ')})`,
- magnitudeNote:'On (0,0), |f| shows the second-threshold cusp at s = 2.25 on the rise toward the resonance. On (1,1), find the pole.',
+ magnitudeNote:'On (0,0), |f| shows the second-threshold cusp at s = 2.25 on the rise toward the resonance. The resonance pole is on (1,1); the chest is on (−2,1).',
 });
 
 // Objective coordinates are explicit navigation clues, inside the infinity hazard.
@@ -240,12 +240,12 @@ const objectiveLocations={
  'root-sum':{key:{x:-3.5,y:3},keyLabel:1,chest:{x:3.5,y:-3}},
  'log':{key:{x:-3.5,y:-3},keyLabel:1,chest:{x:3.5,y:3}},
  'cm-unequal':{key:{x:-3.5,y:3},keyLabel:-1,chest:{x:3.5,y:-3}},
- 'two-channel-cm':{key:{x:-3.5,y:3},keyLabel:'1,0'},
+ 'two-channel-cm':{key:{x:-3.5,y:3},keyLabel:'3,4'},
  'cm':{key:{x:-3.5,y:3},keyLabel:-1,chest:{x:3.5,y:-3}},
  'breit-wigner':{key:{x:-3.5,y:3},keyLabel:-1},
  'breit-wigner-cm':{key:{x:-3.5,y:3},keyLabel:-1},
 };
 for(const level of levels){
- level.chestIsPole=['breit-wigner','breit-wigner-cm','two-channel-cm'].includes(level.id);
+ level.chestIsPole=['breit-wigner','breit-wigner-cm'].includes(level.id);
  Object.assign(level,objectiveLocations[level.id]);
 }
