@@ -13,7 +13,7 @@ function reach(start,target,level){
   }
   for(const [dx,dy] of [[.5,0],[-.5,0],[0,.5],[0,-.5]]){
    const next={x:current.x+dx,y:current.y+dy};if(Math.hypot(next.x,next.y)>5.15)continue;
-   const state={...current};if(!advance(state,next,level)||Math.abs(state.label)>5)continue;
+   const state={...current};if(!advance(state,next,level)||String(state.label).split(',').some(n=>Math.abs(Number(n))>5))continue;
    const id=`${state.x},${state.y},${state.label}`;if(seen.has(id))continue;seen.add(id);queue.push(state);
   }
  }
