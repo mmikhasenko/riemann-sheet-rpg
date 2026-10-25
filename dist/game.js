@@ -176,6 +176,7 @@ window.addEventListener('keydown',e=>{
  const k=e.key.length===1?e.key.toLowerCase():e.key;
  if(k==='r'){e.preventDefault();if(!e.repeat)reset();return;}
  if(menu.open)return;
+ if(k==='v'){e.preventDefault();if(!e.repeat)cycleView();return;}
  if(k==='t'){e.preventDefault();if(!e.repeat)cycleTerrain();return;}
  if(['w','a','s','d','q','e','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)){
   e.preventDefault();keys.add(k);target=null;
@@ -191,6 +192,7 @@ function setView(value){
  $('view-help').textContent=mode==='top'?'The entire terrain changes when you cross the cut. Keys and chests appear nearby; Easy mode reveals them from afar.':mode==='spot'?'Only nearby terrain is visible. Cuts remain visible everywhere. Keys and chests appear nearby; Easy mode reveals them from afar.':'Viewing rays continue onto other sheets. Only your character’s movement counts toward discoveries and sheet transitions; cuts are hidden. Easy mode reveals distant keys and chests only in the illuminated area.';
  document.querySelector('.legend').style.visibility=mode==='player'?'hidden':'visible';
 }
+function cycleView(){const views=['top','spot','player'];setView(views[(views.indexOf(mode)+1)%views.length]);}
 $('reset').onclick=()=>reset();
 $('views').onclick=e=>{if(e.target.dataset.view)setView(e.target.dataset.view);};
 $('open-references').onclick=()=>{keys.clear();target=null;references.showModal();};
@@ -198,6 +200,7 @@ $('close-references').onclick=()=>references.close();
 references.addEventListener('close',()=>{keys.clear();target=null;$('open-references').focus({preventScroll:true});});
 $('easy-mode').onchange=e=>{easyMode=e.target.checked;try{storage?.setItem('analytic-rpg-easy-mode',String(easyMode));}catch{};};
 $('scalar').onchange=e=>setTerrain(+e.target.value);
+$('view-cycle').onclick=()=>{cycleView();overlay.focus({preventScroll:true});};
 $('terrain-cycle').onclick=()=>{cycleTerrain();overlay.focus({preventScroll:true});};
 $('turn-left').onclick=()=>{turn(Math.PI/4);overlay.focus({preventScroll:true});};
 $('turn-right').onclick=()=>{turn(-Math.PI/4);overlay.focus({preventScroll:true});};
