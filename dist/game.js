@@ -1,3 +1,5 @@
+import {UNEQUAL_CM_GLSL} from './unequal-cm.js';
+import {TWO_CHANNEL_GLSL,sheetPair,CHANNELS} from './two-channel-cm.js';
 import {VERSION} from './version.js';
 import {installTour} from './tour.js';
 import {BW_CM_GLSL} from './breit-wigner-cm.js';
@@ -52,7 +54,7 @@ function reset(index=levelIndex){
   document.querySelector('.intro p').textContent=activeLevel.subtitle;
   document.querySelector('.intro .eyebrow').textContent=`EXPEDITION ${activeLevel.number}`;
   document.querySelector('.formula').innerHTML=`f(s) = ${activeLevel.formula} <span>LEVEL ${activeLevel.number} · ${activeLevel.sheets}</span>`;
-  document.querySelector('.edition b').textContent=`${activeLevel.number} / 10`;
+  document.querySelector('.edition b').textContent=`${levelIndex+1} / ${levels.length}`;
   document.querySelector('.mission h2').textContent=activeLevel.title;
   document.querySelector('#key-objective small').textContent=`Sheet ${activeLevel.labelName(key.label)} · s = ${key.x.toFixed(3)} ${key.y<0?'−':'+'} ${Math.abs(key.y).toFixed(3)}i`;
   document.querySelector('#chest-objective small').textContent=`Sheet ${activeLevel.labelName(chest.label)} · s = ${chest.x.toFixed(3)} ${chest.y<0?'−':'+'} ${Math.abs(chest.y).toFixed(3)}i${activeLevel.chestIsPole?' · pole':''}`;
@@ -60,7 +62,7 @@ function reset(index=levelIndex){
   document.querySelector('.insight p').textContent=activeLevel.note;
   $('engine-note').textContent=`FLOAT64 LOGIC · WEBGL2 TERRAIN · ${activeLevel.cutLabel}`;
   notice(`Find the key on Sheet ${activeLevel.labelName(key.label)}, then the chest on Sheet ${activeLevel.labelName(chest.label)}.`,8);
-  setView('player');setTerrain(1);discover();overlay.focus({preventScroll:true});
+  setView('player');setTerrain(activeLevel.defaultScalar??1);discover();overlay.focus({preventScroll:true});
 }
 function showLevelSelection(){
   $('level-selection').hidden=false;
@@ -97,15 +99,19 @@ if(gl){
  const vert=`#version 300 es
  in vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
  const frag=`#version 300 es
- precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs;uniform float signSheet,heading,terrainRange,cutPhi;
+ precision highp float;out vec4 color;uniform vec2 resolution,player,cutBounds,branchXs,sheetIndices;uniform float signSheet,heading,terrainRange,cutPhi;
  ${QUADRATIC_CUT_GLSL}uniform int mode,scalar,functionKind;
  vec2 principalRoot(vec2 z){float r=length(z);float re=z.x>=0.?sqrt((r+z.x)*.5):abs(z.y)/sqrt(2.*(r-z.x));float im=z.x>=0.?(re>0.?z.y/(2.*re):0.):(z.y<0.?-1.:1.)*sqrt((r-z.x)*.5);return vec2(re,im);}
  ${CM_GLSL}
  ${BW_GLSL}
  ${BW_CM_GLSL}
- void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;
+ ${UNEQUAL_CM_GLSL}
+ ${TWO_CHANNEL_GLSL}
+ void main(){vec2 s=(gl_FragCoord.xy/resolution-.5)*vec2(resolution.x/resolution.y*12.,12.);vec2 d=s-player;float label=signSheet;vec2 ns=sheetIndices;
  if(mode==2 && functionKind==5){if(mod(curvedCrossings(player,s,branchXs,cutPhi),2.)>0.5)label=-label;}
- if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==7){if(x<0.||x>=1.)label=-label;}else if(functionKind==6||functionKind==8){if(x>=1.)label+=s.y<player.y?1.:-1.;else if(x>=0.)label=-label;}else if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
+ if(mode==2 && functionKind!=5 && ((player.y<0.)!=(s.y<0.))){float t=-player.y/(s.y-player.y);float x=mix(player.x,s.x,t);if(functionKind==10){
+ ${CHANNELS.map((c,i)=>`if(x>=${c.a.toFixed(17)})ns.${i===0?'x':'y'}+=s.y<player.y?1.:-1.;else if(x>=${c.b.toFixed(17)})ns.${i===0?'x':'y'}=-ns.${i===0?'x':'y'};`).join('')}
+ }else if(functionKind==9){if(x>=2.25)label+=s.y<player.y?1.:-1.;else if(x>=.5625)label=-label;}else if(functionKind==7){if(x<0.||x>=1.)label=-label;}else if(functionKind==6||functionKind==8){if(x>=1.)label+=s.y<player.y?1.:-1.;else if(x>=0.)label=-label;}else if(functionKind==3){if(x>=cutBounds.x && x<branchXs.x)label=float(int(label)^1);else if(x>=branchXs.y && x<1000000.)label=float(int(label)^2);}else if(x>=cutBounds.x && x<cutBounds.y){if(functionKind==1)label=mod(label+(s.y<player.y?1.:-1.)+3.,3.);else if(functionKind==4)label+=s.y<player.y?1.:-1.;else label=-label;}}
  float r=length(s);vec2 root=vec2(sqrt(max(0.,(r+s.x)*.5)),(s.y<0.?-1.:1.)*sqrt(max(0.,(r-s.x)*.5)))*label;
  if(functionKind==1){float angle=(atan(s.y,s.x)+6.28318530718*label)/3.;root=pow(r,1./3.)*vec2(cos(angle),sin(angle));}
  if(functionKind==2){vec2 u=principalRoot(vec2(s.x-branchXs.x,s.y)),w=principalRoot(vec2(s.x-branchXs.y,s.y));root=label*vec2(u.x*w.x-u.y*w.y,u.x*w.y+u.y*w.x);}
@@ -115,6 +121,8 @@ if(gl){
  if(functionKind==6)root=cmValue(s,label);
  if(functionKind==7)root=bwValue(s,label);
  if(functionKind==8)root=bwCMValue(s,label);
+ if(functionKind==9)root=unequalValue(s,label);
+ if(functionKind==10)root=twoChannelValue(s,ns);
  float v=scalar==0?root.x:scalar==1?root.y:length(root);float t=clamp(scalar==2?v/terrainRange:.5+v/(2.*terrainRange),0.,1.);
  vec3 low=vec3(.055,.17,.24),mid=vec3(.19,.39,.39),high=vec3(.69,.72,.44);vec3 c=t<.5?mix(low,mid,t*2.):mix(mid,high,(t-.5)*2.);
  float contour=abs(fract(v*5.+.5)-.5);float line=1.-smoothstep(.015,.015+fwidth(v)*7.,contour);c*=1.-.22*line;
@@ -125,13 +133,13 @@ if(gl){
  function shader(type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh;}
  program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const a=gl.getAttribLocation(program,'a');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
- for(const name of ['resolution','player','signSheet','heading','mode','scalar','functionKind','cutBounds','branchXs','terrainRange','cutPhi'])uniforms[name]=gl.getUniformLocation(program,name);
+ for(const name of ['resolution','player','signSheet','heading','mode','scalar','functionKind','cutBounds','branchXs','terrainRange','cutPhi','sheetIndices'])uniforms[name]=gl.getUniformLocation(program,name);
 }else{$('view-help').textContent='WebGL2 is unavailable. Map markers and gameplay remain available.';}
 function screen(p){return {x:width/2+p.x*scale,y:height/2-p.y*scale};}
 function visible(p){if(mode==='top')return true;const d=Math.hypot(p.x-state.x,p.y-state.y);if(mode==='spot')return d<2;return d<.45||(d<5&&((p.x-state.x)*Math.cos(heading)+(p.y-state.y)*Math.sin(heading))/d>.5);}
 function drawObject(p,type){const label=mode==='player'?transport(state,p,state.label,activeLevel.cuts):state.label;if(p.label!==label||(mode==='player'&&!visible(p))||(!easyMode&&(!visible(p)||Math.hypot(p.x-state.x,p.y-state.y)>1))||(type==='key'&&state.key))return;const q=screen(p);ctx.save();ctx.translate(q.x,q.y);ctx.strokeStyle='#f0ce8f';ctx.fillStyle='#17282a';ctx.lineWidth=2;ctx.shadowColor='#d9b76c';ctx.shadowBlur=14;if(type==='key'){ctx.beginPath();ctx.arc(-4,-5,6,0,Math.PI*2);ctx.moveTo(0,0);ctx.lineTo(10,10);ctx.lineTo(15,5);ctx.moveTo(7,7);ctx.lineTo(11,3);ctx.stroke();}else{ctx.fillRect(-12,-8,24,18);ctx.strokeRect(-12,-8,24,18);ctx.beginPath();ctx.moveTo(-12,-1);ctx.lineTo(12,-1);ctx.stroke();ctx.fillStyle='#f0ce8f';ctx.fillRect(-2,-3,4,7);}ctx.shadowBlur=0;ctx.font='9px "DM Sans", sans-serif';ctx.textAlign='center';ctx.fillStyle='#ebd6b2';ctx.fillText(type==='key'?'BRASS KEY':state.won?'CHEST OPENED':'HIDDEN CHEST',0,32);ctx.restore();}
 function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);width=rect.width;height=rect.height;scale=height/12;if(overlay.width!==Math.round(width*dpr)||overlay.height!==Math.round(height*dpr)){overlay.width=canvas.width=Math.round(width*dpr);overlay.height=canvas.height=Math.round(height*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
- if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.player,state.x,state.y);gl.uniform1f(uniforms.signSheet,state.label);gl.uniform1f(uniforms.heading,heading);gl.uniform1i(uniforms.mode,['top','spot','player'].indexOf(mode));gl.uniform1i(uniforms.scalar,scalar);gl.uniform1i(uniforms.functionKind,activeLevel.shader);gl.uniform1f(uniforms.terrainRange,activeLevel.terrainRange??3);gl.uniform2f(uniforms.cutBounds,activeLevel.cuts[0].a?.x??0,activeLevel.cuts[0].b?.x??0);gl.uniform1f(uniforms.cutPhi,activeLevel.phi??0);gl.uniform2f(uniforms.branchXs,activeLevel.branchPoints[0].x,activeLevel.branchPoints.at(-1).x);gl.drawArrays(gl.TRIANGLES,0,6);}
+ if(gl){gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.player,state.x,state.y);gl.uniform1f(uniforms.signSheet,typeof state.label==='number'?state.label:0);gl.uniform2f(uniforms.sheetIndices,...(activeLevel.shader===10?sheetPair(state.label):[0,0]));gl.uniform1f(uniforms.heading,heading);gl.uniform1i(uniforms.mode,['top','spot','player'].indexOf(mode));gl.uniform1i(uniforms.scalar,scalar);gl.uniform1i(uniforms.functionKind,activeLevel.shader);gl.uniform1f(uniforms.terrainRange,activeLevel.terrainRange??3);gl.uniform2f(uniforms.cutBounds,activeLevel.cuts[0].a?.x??0,activeLevel.cuts[0].b?.x??0);gl.uniform1f(uniforms.cutPhi,activeLevel.phi??0);gl.uniform2f(uniforms.branchXs,activeLevel.branchPoints[0].x,activeLevel.branchPoints.at(-1).x);gl.drawArrays(gl.TRIANGLES,0,6);}
  const origin=screen({x:0,y:0});
  ctx.strokeStyle='#d6a56888';ctx.lineWidth=1;ctx.setLineDash([4,7]);
  if(mode!=='player')for(const cut of activeLevel.cuts){
@@ -143,7 +151,7 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
    const start=screen(cut.a),end=screen(cut.b);
    ctx.beginPath();ctx.moveTo(Math.max(0,start.x),start.y);ctx.lineTo(Math.min(width,end.x),end.y);ctx.stroke();
    ctx.font='9px monospace';ctx.fillStyle='#e1bc7b';
-   ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+Math.min(width,end.x))/2-24),start.y-12);
+   ctx.fillText(cut.caption||activeLevel.cutLabel,Math.max(30,(Math.max(0,start.x)+Math.min(width,end.x))/2-24),start.y-12-(cut.captionOffset??0));
  }
  ctx.setLineDash([]);ctx.strokeStyle='#bc83824a';ctx.beginPath();ctx.arc(origin.x,origin.y,5.5*scale,0,Math.PI*2);ctx.stroke();
  for(const branch of activeLevel.branchPoints)if(visible(branch)&&activeOnSheet(branch,mode==='player'?transport(state,branch,state.label,activeLevel.cuts):state.label)){
@@ -151,14 +159,14 @@ function render(){const rect=overlay.getBoundingClientRect(),dpr=Math.min(device
    ctx.beginPath();ctx.arc(p.x,p.y,branch.radius*scale,0,Math.PI*2);ctx.fill();ctx.stroke();
    ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.stroke();ctx.font='9px monospace';ctx.fillStyle='#dac494';
    if(activeLevel.branchPoints.length===1)ctx.fillText('0 · BRANCH POINT',p.x+18,p.y+4);
-   else {ctx.textAlign='center';ctx.fillText(branch.name,p.x,p.y+28);ctx.textAlign='start';}
+   else {ctx.textAlign='center';ctx.fillText(branch.name,p.x,p.y+28+(branch.labelOffset??0));ctx.textAlign='start';}
  }
 
  drawObject(key,'key');drawObject(chest,'chest');const p=screen(state);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(-heading);ctx.shadowBlur=20;ctx.shadowColor='#bdfcda';ctx.fillStyle='#dcffe6';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-7,-7);ctx.lineTo(-4,0);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#b9e8cf77';ctx.beginPath();ctx.arc(0,0,18,0,2*Math.PI);ctx.stroke();ctx.restore();
  $('sheet').textContent=`SHEET ${activeLevel.labelName(state.label)}`;$('sheet-type').textContent=state.label===activeLevel.initialLabel?'Principal branch':'Continued branch';$('sheet-dot').style.background=state.label===activeLevel.initialLabel?'#aee4c5':'#e7bd77';const f=activeLevel.evaluate(state,state.label),fmt=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(3);$('coordinates').textContent=`s = ${state.x.toFixed(2)} ${fmt(state.y)}i`;$('value').textContent=`f(s) = ${f.x.toFixed(3)} ${fmt(f.y)}i`;$('hp').style.width=state.hp+'%';$('hp-label').textContent=Math.ceil(state.hp)+'%';$('toast').style.opacity=elapsed<noticeUntil?1:0;
  for(const [id,done] of [['key-objective',state.key],['chest-objective',state.won]]){$(id).classList.toggle('done',done);$(id).querySelector('.check').textContent=done?'✓':'○';}
 }
-function update(dt){if(state.dead||menu.open||references.open||tour.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const result=advance(state,next,activeLevel);if(!result&&len)notice('The branch point is a puncture. Walk around it.',1);if(result?.labels.length){state.crossings+=result.labels.length;for(const label of result.labels)discover(label);notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);}
+function update(dt){if(state.dead||menu.open||references.open||tour.open)return;let dx=(keys.has('d')||keys.has('ArrowRight')?1:0)-(keys.has('a')||keys.has('ArrowLeft')?1:0),dy=(keys.has('w')||keys.has('ArrowUp')?1:0)-(keys.has('s')||keys.has('ArrowDown')?1:0);if(!dx&&!dy&&target){dx=target.x-state.x;dy=target.y-state.y;if(Math.hypot(dx,dy)<.08){dx=dy=0;target=null;}}let len=Math.hypot(dx,dy);const turning=(keys.has('q')?1:0)-(keys.has('e')?1:0);if(len){dx/=len;dy/=len;if(!turning)heading=Math.atan2(dy,dx);}if(turning)turn(turning*Math.PI*dt);const r=Math.hypot(state.x,state.y),pull=r>5.5?Math.min(3,(r-5.5)*1.2):0;const next={x:state.x+(dx*2+state.x/(r||1)*pull)*dt,y:state.y+(dy*2+state.y/(r||1)*pull)*dt};const result=advance(state,next,activeLevel);if(!result&&len)notice('This singular point is a puncture. Walk around it.',1);if(result?.labels.length){state.crossings+=result.labels.length;for(const label of result.labels)discover(label);notice(`Cut crossed · now on Sheet ${activeLevel.labelName(state.label)}`);}
  if(r>5.5)state.hp=Math.max(0,state.hp-dt*(8+pull*8));if(state.hp<=0){state.dead=true;showMenu('dead');return;}if(!state.key&&state.label===key.label&&Math.hypot(state.x-key.x,state.y-key.y)<.4){state.key=true;notice(`Key found. Find the chest on Sheet ${activeLevel.labelName(chest.label)}.`,6);}if(!state.won&&state.label===chest.label&&Math.hypot(state.x-chest.x,state.y-chest.y)<(activeLevel.chestRadius??.45)){if(state.key){state.won=true;progress.completed.add(activeLevel.id);persist();notice('Chest opened! Your discoveries are recorded.',6);showMenu('complete');}else notice(`The chest is locked. Find the key on Sheet ${activeLevel.labelName(key.label)}.`,2);}}
 function frame(t){const dt=Math.min((t-last)/1000||0,.035);last=t;elapsed+=dt;update(dt);render();requestAnimationFrame(frame);}
 function turn(angle){heading=Math.atan2(Math.sin(heading+angle),Math.cos(heading+angle));}

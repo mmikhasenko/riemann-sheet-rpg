@@ -1,3 +1,5 @@
+import {unequalCM} from './unequal-cm.js';
+import {CHANNELS,twoChannelBW,TWO_CHANNEL_POLE,sheetPair,channelMap,validPair} from './two-channel-cm.js';
 import {breitWignerCM, BW_CM_POLE} from './breit-wigner-cm.js';
 import {breitWigner, BW_POLE} from './breit-wigner.js';
 import {createQuadraticCut} from './curved-cut.js';
@@ -168,6 +170,24 @@ levels.push({
 });
 
 levels.push({
+ ...levels.find(l=>l.id==='cm'),
+ id:'cm-unequal',number:'06★',shader:9,title:'Separation',
+ evaluate:unequalCM.evaluate,
+ worlds:'A threshold splits.',menuNote:'unequal masses · a hidden pole and pseudothreshold',
+ cuts:[
+  {a:{x:unequalCM.b,y:0},b:{x:unequalCM.a,y:0},map:n=>n===0?0:-n,active:n=>n!==0,caption:'n ↦ −n'},
+  {a:{x:unequalCM.a,y:0},b:{x:1e6,y:0},map:(n,d)=>n-d,caption:'↓ n+1 · ↑ n−1'},
+ ],
+ branchPoints:[
+  {x:0,y:0,radius:.12,name:'0 · POLE',kind:'pole',active:n=>n!==0},
+  {x:unequalCM.b,y:0,radius:.12,name:'b = 0.5625',labelOffset:16,active:n=>n!==0},
+  {x:unequalCM.a,y:0,radius:.18,name:'a = 2.25'},
+ ],
+ subtitle:'Unequal-mass CM · m₁ = 1.125 · m₂ = 0.375 · A hidden branch point separates from zero.',
+ note:'ρₚ = √(s−a) √(s−b) / s, with a = 2.25 and b = 0.5625. The separate principal roots make a finite cut (b,a). ΣⅠ is regular at b and zero. On n ≠ 0, b becomes a branch point and zero a simple pole. Circling zero alone never changes sheets. Cross the right cut to shift n; cross (b,a) to reflect n.',
+});
+
+levels.push({
  id:'breit-wigner',number:'07',shader:7,initialLabel:1,chestLabel:-1,labels:[1,-1],
  title:'First Pole',formula:'1 / (M² − s − ig²ρ(s))',worlds:'A hidden resonance.',sheets:'TWO SHEETS',
  evaluate:breitWigner,defaultScalar:2,terrainRange:4,start:{x:.5,y:-2},chest:BW_POLE,chestRadius:.25,
@@ -191,6 +211,25 @@ levels.push({
  magnitudeNote:'The magnitude reveals the CM resonance pole. Its position differs from Level 7 because the real part of CM remains away from threshold.',
 });
 
+levels.push({
+ id:'two-channel-cm',number:'08',shader:10,title:'Confluence',
+ initialLabel:'0,0',chestLabel:'1,1',labels:null,validLabel:validPair,
+ formula:'1 / (M² − s − g₁²Σ₁ − g₂²Σ₂)',worlds:'Two channels meet.',sheets:'INFINITELY MANY SHEET PAIRS',
+ evaluate:twoChannelBW,defaultScalar:2,terrainRange:3,start:{x:-2,y:-2},chest:TWO_CHANNEL_POLE,chestRadius:.25,
+ cuts:CHANNELS.flatMap((c,i)=>[
+  {a:{x:c.b,y:0},b:{x:c.a,y:0},map:label=>channelMap(label,i,n=>n===0?0:-n),active:label=>sheetPair(label)[i]!==0,caption:`reflect n${i+1}`,captionOffset:i*14},
+  {a:{x:c.a,y:0},b:{x:1e6,y:0},map:(label,d)=>channelMap(label,i,n=>n-d),caption:`shift n${i+1}`,captionOffset:i*14},
+ ]),
+ branchPoints:CHANNELS.flatMap((c,i)=>[
+  {x:c.b,y:0,radius:.10,name:`b${i+1} = ${c.b}`,labelOffset:i*16,active:label=>sheetPair(label)[i]!==0},
+  {x:c.a,y:0,radius:.15,name:`a${i+1} = ${c.a}`,labelOffset:i===0?32:0},
+ ]),
+ subtitle:'Two unequal-mass channels · thresholds 1 and 2.25 · M² = 2.9 · g₁² = 0.35 · g₂² = 0.65.',
+ note:'Each channel has its own CM index (n₁,n₂). Crossing above both thresholds shifts both indices; between thresholds only channel 1 shifts, while channel 2 can reflect. Each pseudothreshold is hidden when its own index is zero. The physical |f| has a cusp at 2.25 before the resonance peak. The pole treasure is on (1,1), reached by crossing downward above both thresholds. The CM poles at zero generally become an amplitude zero, not a pole.',
+ cutLabel:'independent CM indices (n₁,n₂)',labelName:label=>`(${sheetPair(label).join(', ')})`,
+ magnitudeNote:'On (0,0), |f| shows the second-threshold cusp at s = 2.25 on the rise toward the resonance. On (1,1), find the pole.',
+});
+
 // Objective coordinates are explicit navigation clues, inside the infinity hazard.
 // Two-sheet levels necessarily put both objectives on the same non-starting sheet.
 const objectiveLocations={
@@ -200,11 +239,13 @@ const objectiveLocations={
  'rotated-root':{key:{x:3.5,y:3},keyLabel:-1,chest:{x:-3.5,y:-3}},
  'root-sum':{key:{x:-3.5,y:3},keyLabel:1,chest:{x:3.5,y:-3}},
  'log':{key:{x:-3.5,y:-3},keyLabel:1,chest:{x:3.5,y:3}},
+ 'cm-unequal':{key:{x:-3.5,y:3},keyLabel:-1,chest:{x:3.5,y:-3}},
+ 'two-channel-cm':{key:{x:-3.5,y:3},keyLabel:'1,0'},
  'cm':{key:{x:-3.5,y:3},keyLabel:-1,chest:{x:3.5,y:-3}},
  'breit-wigner':{key:{x:-3.5,y:3},keyLabel:-1},
  'breit-wigner-cm':{key:{x:-3.5,y:3},keyLabel:-1},
 };
 for(const level of levels){
- level.chestIsPole=['breit-wigner','breit-wigner-cm'].includes(level.id);
+ level.chestIsPole=['breit-wigner','breit-wigner-cm','two-channel-cm'].includes(level.id);
  Object.assign(level,objectiveLocations[level.id]);
 }

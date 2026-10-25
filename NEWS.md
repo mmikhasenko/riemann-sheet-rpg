@@ -1,5 +1,12 @@
 # Release notes
 
+## Unreleased
+
+- Added Separation immediately after Threshold: unequal-mass CM with separate principal square roots, a hidden pseudothreshold, and a simple origin pole on nonphysical sheets.
+- Added Confluence: two unequal-mass CM channels with independent integer sheet indices, a second-threshold cusp on the rising physical line shape, and a resonance pole above both thresholds.
+- Added stable evaluation at the physical origin, and tests against an independent dispersion integral and differential-equation continuation.
+- Level starts now honor their configured terrain choice; resonance levels open in magnitude view.
+
 ## v0.1.1 — 2026-10-23
 
 - Fixed Easy mode in Player view: distant key and chest markers remain visible in the illuminated area, but are hidden in darkness.

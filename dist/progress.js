@@ -15,7 +15,9 @@ function validSheet(id){
   if(validSheets.has(id))return true;
   if(typeof id!=='string')return false;
   const colon=id.indexOf(':'),levelId=id.slice(0,colon),label=id.slice(colon+1);
-  if(!levels.some(level=>level.id===levelId&&level.labels===null)||!/^-?\d+$/.test(label))return false;
+  const level=levels.find(level=>level.id===levelId&&level.labels===null);
+  if(level?.validLabel)return level.validLabel(label);
+  if(!level||!/^-?\d+$/.test(label))return false;
   const n=Number(label);return Number.isSafeInteger(n)&&`${levelId}:${n}`===id;
 }
 const validLevels = new Set(levels.map(level => level.id));
